@@ -6,7 +6,7 @@ const VERSION = '1.0.6';
 
 // Configuración
 const CONFIG = {
-    baseUrl: 'https://yjrrtufenyfuhdycueyo.functions.supabase.co',  // URL de Supabase Edge Functions
+    baseUrl: 'https://lunrriztthihxlvjyiys.functions.supabase.co',  // URL de Supabase Edge Functions
     defaultRedirect: '/login.html'
 };
 
