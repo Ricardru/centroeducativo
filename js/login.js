@@ -103,7 +103,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Redireccionar según el perfil_id usando URLs absolutas desde la raíz
             setTimeout(() => {
-                const baseUrl = window.location.origin + window.location.pathname.replace('login.html', '');
+                const baseUrl = window.location.origin + window.location.pathname.replace('index.html', '');
                 switch(userData?.perfil_id) {
                     case 1: // Admin
                         window.location.href = baseUrl + 'admin/dashboard.html';
