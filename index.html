@@ -3,225 +3,115 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Colegio Carmen de Peña - Comunicaciones y Avisos</title>
+    <title>Iniciar Sesión - Centro Educativo</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="css/styles.css?v=1.0.80">
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js"></script>
+    <style>
+        .login-container {
+            min-height: 100vh;
+            background: linear-gradient(rgba(27, 58, 107, 0.9), rgba(27, 58, 107, 0.9)), url('https://images.unsplash.com/photo-1523050854058-8df90110c9f1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=MnwxfDB8MXxyYW5kb218MHx8c2Nob29sfHx8fHx8MTY5ODg0NjQ0MA&ixlib=rb-4.0.3&q=80&utm_campaign=api-credit&utm_medium=referral&utm_source=unsplash_source&w=1080');
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .login-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 10px;
+            padding: 2rem;
+            max-width: 400px;
+            width: 100%;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .login-card .logo {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: var(--primary-color);
+        }
+
+        .login-card .logo i {
+            font-size: 3rem;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.25rem rgba(27, 58, 107, 0.25);
+        }
+    </style>
+</head>
 <body>
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom sticky-top">
-        <div class="container">
-            <a class="navbar-brand d-flex align-items-center" href="#">
-                <img src="img/logos/logo.png" alt="Colegio Carmen de Peña" class="navbar-logo">
-                <span class="ms-2 navbar-brand-text">Colegio Carmen de Peña</span>
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link active" href="#avisos">Avisos</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#galeria">Galería</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#calendario">Calendario</a>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="menuCursos" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Cursos
-                        </a>
-                        <ul class="dropdown-menu" id="listaCursos" aria-labelledby="menuCursos">
-                            <li><a class="dropdown-item" href="#"><i class="bi bi-clock-fill"></i> Cargando cursos...</a></li>
-                        </ul>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="historia.html">Nuestra Historia</a>
-                    </li>
-                </ul>
-                <div class="ms-3">
-                    <a href="login.html" class="btn btn-light">
-                        <i class="bi bi-person-fill"></i> Iniciar Sesión
+    <div class="login-container">
+        <div class="login-card">
+            <div class="logo">
+                <img src="img/logos/logo.png" alt="Logo Centro Educativo" class="navbar-logo">
+                <h4 class="mt-2">Centro Educativo</h4>
+                <p class="text-muted">Portal de Comunicaciones</p>
+            </div>
+
+            <div id="mensajes"></div>
+
+            <form id="loginForm" class="needs-validation" novalidate>
+                <div class="mb-3">
+                    <label for="email" class="form-label">Correo Electrónico</label>
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <i class="bi bi-envelope"></i>
+                        </span>
+                        <input type="email" class="form-control" id="email" required 
+                               placeholder="Ingrese su correo electrónico">
+                        <div class="invalid-feedback">
+                            Por favor ingrese un correo electrónico válido.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label for="password" class="form-label">Contraseña</label>
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <i class="bi bi-key"></i>
+                        </span>
+                        <input type="password" class="form-control" id="password" required 
+                               placeholder="Ingrese su contraseña"
+                               pattern=".{8,}"
+                               title="La contraseña debe tener al menos 8 caracteres">
+                        <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                        <div class="invalid-feedback">
+                            La contraseña debe tener al menos 8 caracteres.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input" id="remember">
+                    <label class="form-check-label" for="remember">Recordarme</label>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-box-arrow-in-right"></i> Iniciar Sesión
+                    </button>
+                    <a href="index.html" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Volver al Inicio
                     </a>
                 </div>
-            </div>
-        </div>
-    </nav>
 
-    <!-- Hero Section -->
-    <section class="hero-section text-center">
-        <div class="container">
-            <h1 class="display-4 mb-4">Bienvenidos a Nuestro Portal de Comunicaciones</h1>
-            <p class="lead">Mantente informado sobre todas las novedades y anuncios importantes de nuestra comunidad educativa</p>
-        </div>
-    </section>
-
-    <!-- Filtros 
-    <section class="py-4 bg-light">
-        <div class="container">
-            <div class="row justify-content-center">
-                <div class="col-md-8">
-                    <div class="d-flex flex-wrap gap-2 justify-content-center">
-                        <button class="btn btn-outline-primary">Todos</button>
-                        <button class="btn btn-outline-primary">Padres</button>
-                        <button class="btn btn-outline-primary">Alumnos</button>
-                        <button class="btn btn-outline-primary">Eventos</button>
-                        <button class="btn btn-outline-primary">Académico</button>
-                    </div>
+                <div class="text-center mt-3">
+                    <a href="change-password.html" class="text-decoration-none">Cambiar contraseña</a>
                 </div>
-            </div>
-        </div>
-    </section>-->
-
-    <!-- Sección de Avisos -->
-    <section id="avisos" class="py-5">
-        <div class="container">
-            <h2 class="text-center mb-5">Últimos Avisos y Comunicaciones</h2>
-            <div class="row" id="avisos-container">
-                <!-- Los avisos se cargarán dinámicamente aquí -->
-            </div>
-        </div>
-    </section>
-
-    <!-- Galería de Imágenes -->
-    <section id="galeria" class="py-5 bg-light">
-        <div class="container">
-            <h2 class="text-center mb-5">Galería de Imágenes</h2>
-            <div class="row">
-                <div class="col-md-12 mb-4">
-                    <div class="d-flex justify-content-center gap-3">
-                        <button class="btn btn-outline-primary categoria-galeria active" data-categoria="todas">
-                            Todas
-                        </button>
-                        <button class="btn btn-outline-primary categoria-galeria" data-categoria="principal">
-                            Destacadas
-                        </button>
-                        <button class="btn btn-outline-primary categoria-galeria" data-categoria="eventos">
-                            Eventos
-                        </button>
-                        <button class="btn btn-outline-primary categoria-galeria" data-categoria="noticias">
-                            Noticias
-                        </button>
-                    </div>
-                </div>
-            </div>
-            <div class="row" id="galeria-container">
-                <!-- Las imágenes se cargarán dinámicamente aquí -->
-                <div class="col-12 text-center">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Cargando...</span>
-                    </div>
-                    <p><small>Cargando imágenes...</small></p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Calendario de Eventos -->
-    <section id="calendario" class="py-5 bg-light">
-        <div class="container">
-            <h2 class="text-center mb-5">Calendario de Eventos</h2>
-            <div class="row justify-content-center">
-                <div class="col-md-8">
-                    <div class="calendar-grid" id="calendario-container">
-                        <!-- Los eventos del calendario se cargarán dinámicamente aquí -->
-                        <div class="calendar-loading">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Cargando...</span>
-                            </div>
-                            <small>Cargando eventos...</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Modal para eventos -->
-    <div class="modal fade" id="eventoModal" tabindex="-1" aria-labelledby="eventoModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="eventoModalLabel"></h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="event-details">
-                        <div class="event-date"></div>
-                        <div class="event-description"></div>
-                        <div class="event-metadata mt-3">
-                            <small class="text-muted">Tipo de evento:</small>
-                            <span class="event-type ms-2"></span>
-                        </div>
-                        <div class="event-state mt-2">
-                            <small class="text-muted">Estado:</small>
-                            <span class="badge bg-success ms-2">Activo</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            </form>
         </div>
     </div>
 
-    <!-- Modal para imágenes -->
-    <div class="modal fade" id="imagenModal" tabindex="-1" aria-labelledby="imagenModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="imagenModalTitle"></h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body text-center">
-                    <img id="imagenModalImg" src="" alt="" class="img-fluid">
-                    <p class="mt-3" id="imagenModalDesc"></p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-4">
-                    <h5>Contacto</h5>
-                    <p><i class="bi bi-geo-alt"></i> Dirección del Colegio</p>
-                    <p><i class="bi bi-telephone"></i> +56 2 1234 5678</p>
-                    <p><i class="bi bi-envelope"></i> contacto@carmendepena.cl</p>
-                </div>
-                <div class="col-md-4">
-                    <h5>Enlaces Rápidos</h5>
-                    <ul class="list-unstyled">
-                        <li><a href="#" class="text-white">Portal de Padres</a></li>
-                        <li><a href="#" class="text-white">Portal de Estudiantes</a></li>
-                        <li><a href="#" class="text-white">Biblioteca Digital</a></li>
-                    </ul>
-                </div>
-                <div class="col-md-4">
-                    <h5>Síguenos</h5>
-                    <div class="d-flex gap-3">
-                        <a href="#" class="text-white"><i class="bi bi-facebook fs-4"></i></a>
-                        <a href="#" class="text-white"><i class="bi bi-twitter fs-4"></i></a>
-                        <a href="#" class="text-white"><i class="bi bi-instagram fs-4"></i></a>
-                    </div>
-                </div>
-            </div>
-            <hr class="mt-4 bg-light">
-            <div class="text-center">
-                <small>&copy; 2025 Colegio Carmen de Peña. Todos los derechos reservados.</small>
-            </div>
-            <div class="position-fixed bottom-0 end-0 p-2">
-                <small class="text-muted">v1.0.80</small>
-            </div>
-        </div>
-    </footer>
-
-    <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script type="module" src="js/app.js?v=1.0.80"></script>
-    <script type="module" src="js/galeria.js?v=1.0.80"></script>
+    <script src="js/login.js"></script>
 </body>
 </html>
