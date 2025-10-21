@@ -120,6 +120,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     case 5: // Padre
                         window.location.href = baseUrl + 'admin/dashboard-padres.html';
                         break;
+                    case 6: // Padre
+                        window.location.href = baseUrl + 'admin/panel-administrativo.html';
+                        break;
                     default:
                         // Si el perfil_id no está definido o no coincide con ninguno de los anteriores
                         console.error('Perfil ID no reconocido:', userData?.perfil_id);
