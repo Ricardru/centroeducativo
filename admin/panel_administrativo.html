@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Administrativo - Centro Educativo</title>
+    
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Custom CSS -->
+    <link href="../css/admin-styles.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --sidebar-width: 230px;
+            --header-height: 70px;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+        }
+        
+        /* Header */
+        .main-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: var(--header-height);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            z-index: 1030;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 100%;
+            padding: 0 20px;
+        }
+        
+        .logo {
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+            text-decoration: none;
+        }
+        
+        .user-menu {
+            display: flex;
+            align-items: center;
+            color: white;
+        }
+        
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+        }
+        
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            top: var(--header-height);
+            left: 0;
+            width: var(--sidebar-width);
+            height: calc(100vh - var(--header-height));
+            background: #2a3f5f;
+            overflow-y: auto;
+            z-index: 1020;
+        }
+        
+        .sidebar-menu {
+            padding: 20px 0;
+        }
+        
+        .menu-section {
+            margin-bottom: 30px;
+        }
+        
+        .menu-title {
+            color: #8aa4c2;
+            font-size: 11px;
+            text-transform: uppercase;
+            padding: 0 20px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        
+        .menu-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            color: #c4cdd5;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        
+        .menu-item:hover,
+        .menu-item.active {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+        
+        .menu-item i {
+            margin-right: 10px;
+            width: 20px;
+        }
+        
+        /* Main Content */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            margin-top: var(--header-height);
+            padding: 30px;
+            min-height: calc(100vh - var(--header-height));
+        }
+        
+        /* Stats Cards */
+        .stats-card {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            border-left: 4px solid;
+            transition: transform 0.3s ease;
+        }
+        
+        .stats-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stats-card.primary { border-left-color: #007bff; }
+        .stats-card.success { border-left-color: #28a745; }
+        .stats-card.info { border-left-color: #17a2b8; }
+        .stats-card.warning { border-left-color: #ffc107; }
+        .stats-card.danger { border-left-color: #dc3545; }
+        .stats-card.purple { border-left-color: #6f42c1; }
+        
+        .stats-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .stats-label {
+            color: #6c757d;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+        
+        .stats-change {
+            font-size: 0.8rem;
+        }
+        
+        .stats-change.positive { color: #28a745; }
+        .stats-change.negative { color: #dc3545; }
+        
+        /* Chart Container */
+        .chart-container {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+        }
+        
+        .chart-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .chart-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .chart-subtitle {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        
+        /* Widget */
+        .widget {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+        }
+        
+        .widget-header {
+            padding: 20px 25px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .widget-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #495057;
+            margin: 0;
+        }
+        
+        .widget-body {
+            padding: 25px;
+        }
+        
+        /* Progress bars */
+        .progress-item {
+            margin-bottom: 20px;
+        }
+        
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+        
+        .progress {
+            height: 8px;
+            border-radius: 10px;
+        }
+        
+        /* Device usage chart */
+        .device-chart {
+            position: relative;
+            height: 200px;
+        }
+        
+        /* Quick settings */
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid #f1f1f1;
+        }
+        
+        .setting-item:last-child {
+            border-bottom: none;
+        }
+        
+        .setting-label {
+            font-size: 0.9rem;
+            color: #495057;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+            
+            .sidebar.show {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0;
+                padding: 20px 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="main-header">
+        <div class="header-content">
+            <a href="#" class="logo">
+                <i class="bi bi-mortarboard"></i> Centro Educativo
+            </a>
+            <div class="user-menu">
+                <div class="notification-badge me-3">
+                    <i class="bi bi-bell" style="font-size: 1.2rem;"></i>
+                    <span class="badge bg-danger position-absolute top-0 start-100 translate-middle rounded-pill">3</span>
+                </div>
+                <div class="user-avatar">
+                    <i class="bi bi-person-fill text-primary"></i>
+                </div>
+                <div>
+                    <div style="font-size: 0.9rem;">Bienvenido,</div>
+                    <div style="font-weight: bold;">John Doe</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Sidebar -->
+    <nav class="sidebar">
+        <div class="sidebar-menu">
+            <div class="menu-section">
+                <div class="menu-title">GENERAL</div>
+                <a href="#" class="menu-item active">
+                    <i class="bi bi-house-door"></i>
+                    <span>Dashboard</span>
+                </a>
+            </div>
+            
+            <div class="menu-section">
+                <div class="menu-title">GESTIÓN</div>
+                <a href="#" class="menu-item">
+                    <i class="bi bi-people"></i>
+                    <span>Estudiantes</span>
+                </a>
+                <a href="#" class="menu-item">
+                    <i class="bi bi-person-workspace"></i>
+                    <span>Docentes</span>
+                </a>
+                <a href="#" class="menu-item">
+                    <i class="bi bi-journal-text"></i>
+                    <span>Materias</span>
+                </a>
+                <a href="#" class="menu-item">
+                    <i class="bi bi-calendar-event"></i>
+                    <span>Horarios</span>
+                </a>
+            </div>
+            
+            <div class="menu-section">
+                <div class="menu-title">ACADÉMICO</div>
+                <a href="#" class="menu-item">
+                    <i class="bi bi-journal-check"></i>
+                    <span>Calificaciones</span>
+                </a>
+                <a href="#" class="menu-item">
+                    <i class="bi bi-person-check"></i>
+                    <span>Asistencias</span>
+                </a>
+                <a href="#" class="menu-item">
+                    <i class="bi bi-file-earmark-text"></i>
+                    <span>Reportes</span>
+                </a>
+            </div>
+            
+            <div class="menu-section">
+                <div class="menu-title">COMUNICACIÓN</div>
+                <a href="#" class="menu-item">
+                    <i class="bi bi-bell"></i>
+                    <span>Avisos</span>
+                </a>
+                <a href="#" class="menu-item">
+                    <i class="bi bi-images"></i>
+                    <span>Galería</span>
+                </a>
+                <a href="#" class="menu-item">
+                    <i class="bi bi-calendar"></i>
+                    <span>Eventos</span>
+                </a>
+            </div>
+            
+            <div class="menu-section">
+                <div class="menu-title">SISTEMA</div>
+                <a href="#" class="menu-item">
+                    <i class="bi bi-gear"></i>
+                    <span>Configuración</span>
+                </a>
+                <a href="#" class="menu-item">
+                    <i class="bi bi-person-gear"></i>
+                    <span>Usuarios</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Welcome Section -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="h3 text-dark">Dashboard</h1>
+                <p class="text-muted mb-0">Bienvenido al panel de administración</p>
+            </div>
+            <div class="text-muted">
+                <i class="bi bi-calendar"></i>
+                22 de octubre, 2025 - 21 de octubre, 2025
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="row mb-4">
+            <div class="col-xl-2 col-lg-4 col-md-6 mb-4">
+                <div class="stats-card primary">
+                    <div class="stats-number text-primary">1,250</div>
+                    <div class="stats-label">Total Estudiantes</div>
+                    <div class="stats-change positive">
+                        <i class="bi bi-arrow-up"></i> 4% Desde la semana pasada
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-2 col-lg-4 col-md-6 mb-4">
+                <div class="stats-card success">
+                    <div class="stats-number text-success">95.50</div>
+                    <div class="stats-label">Promedio Asistencia</div>
+                    <div class="stats-change positive">
+                        <i class="bi bi-arrow-up"></i> 3% Desde la semana pasada
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-2 col-lg-4 col-md-6 mb-4">
+                <div class="stats-card info">
+                    <div class="stats-number text-info">680</div>
+                    <div class="stats-label">Estudiantes Masculinos</div>
+                    <div class="stats-change positive">
+                        <i class="bi bi-arrow-up"></i> 34% Desde el mes pasado
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-2 col-lg-4 col-md-6 mb-4">
+                <div class="stats-card warning">
+                    <div class="stats-number text-warning">570</div>
+                    <div class="stats-label">Estudiantes Femeninos</div>
+                    <div class="stats-change negative">
+                        <i class="bi bi-arrow-down"></i> 12% Desde el mes pasado
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-2 col-lg-4 col-md-6 mb-4">
+                <div class="stats-card danger">
+                    <div class="stats-number text-danger">2,315</div>
+                    <div class="stats-label">Total Calificaciones</div>
+                    <div class="stats-change negative">
+                        <i class="bi bi-arrow-down"></i> 34% Desde el mes pasado
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-2 col-lg-4 col-md-6 mb-4">
+                <div class="stats-card purple">
+                    <div class="stats-number" style="color: #6f42c1;">7,325</div>
+                    <div class="stats-label">Total Registros</div>
+                    <div class="stats-change positive">
+                        <i class="bi bi-arrow-up"></i> 34% Desde el mes pasado
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart Section -->
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <div>
+                            <h5 class="chart-title">Actividades del Sistema</h5>
+                            <p class="chart-subtitle mb-0">Gráfico de título sub-título</p>
+                        </div>
+                        <div class="text-muted">
+                            <i class="bi bi-calendar"></i> 22 de septiembre, 2025 - 21 de octubre, 2025
+                        </div>
+                    </div>
+                    <canvas id="activityChart" height="100"></canvas>
+                </div>
+            </div>
+            
+            <div class="col-lg-4">
+                <div class="widget">
+                    <div class="widget-header">
+                        <h6 class="widget-title">Top Rendimiento por Grado</h6>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="bi bi-three-dots"></i>
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="#">Ver detalles</a></li>
+                                <li><a class="dropdown-item" href="#">Exportar</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="widget-body">
+                        <div class="progress-item">
+                            <div class="progress-label">
+                                <span>1er Grado</span>
+                                <span class="fw-bold">92%</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar bg-success" style="width: 92%"></div>
+                            </div>
+                        </div>
+                        <div class="progress-item">
+                            <div class="progress-label">
+                                <span>2do Grado</span>
+                                <span class="fw-bold">87%</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar bg-info" style="width: 87%"></div>
+                            </div>
+                        </div>
+                        <div class="progress-item">
+                            <div class="progress-label">
+                                <span>3er Grado</span>
+                                <span class="fw-bold">78%</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar bg-warning" style="width: 78%"></div>
+                            </div>
+                        </div>
+                        <div class="progress-item">
+                            <div class="progress-label">
+                                <span>4to Grado</span>
+                                <span class="fw-bold">65%</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar bg-danger" style="width: 65%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Widgets -->
+        <div class="row">
+            <div class="col-lg-4">
+                <div class="widget">
+                    <div class="widget-header">
+                        <h6 class="widget-title">Versiones de la App</h6>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="bi bi-arrow-up"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="widget-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span>Uso de la aplicación por versiones</span>
+                        </div>
+                        <div class="progress-item">
+                            <div class="progress-label">
+                                <span>v1.5.2</span>
+                                <span class="fw-bold">123k</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar bg-success" style="width: 85%"></div>
+                            </div>
+                        </div>
+                        <div class="progress-item">
+                            <div class="progress-label">
+                                <span>v1.5.3</span>
+                                <span class="fw-bold">53k</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar bg-primary" style="width: 65%"></div>
+                            </div>
+                        </div>
+                        <div class="progress-item">
+                            <div class="progress-label">
+                                <span>v1.5.4</span>
+                                <span class="fw-bold">23k</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar bg-info" style="width: 35%"></div>
+                            </div>
+                        </div>
+                        <div class="progress-item">
+                            <div class="progress-label">
+                                <span>v1.5.5</span>
+                                <span class="fw-bold">3k</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar bg-warning" style="width: 15%"></div>
+                            </div>
+                        </div>
+                        <div class="progress-item mb-0">
+                            <div class="progress-label">
+                                <span>v1.5.6</span>
+                                <span class="fw-bold">1k</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar bg-danger" style="width: 8%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4">
+                <div class="widget">
+                    <div class="widget-header">
+                        <h6 class="widget-title">Uso por Dispositivo</h6>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="bi bi-arrow-up"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="widget-body text-center">
+                        <div class="device-chart">
+                            <canvas id="deviceChart"></canvas>
+                        </div>
+                        <div class="mt-3">
+                            <div class="row text-center">
+                                <div class="col-6 border-end">
+                                    <div class="fw-bold">123k</div>
+                                    <small class="text-muted">Total</small>
+                                </div>
+                                <div class="col-6">
+                                    <div class="fw-bold">30%</div>
+                                    <small class="text-muted">iOS</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4">
+                <div class="widget">
+                    <div class="widget-header">
+                        <h6 class="widget-title">Configuración Rápida</h6>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="bi bi-arrow-up"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="widget-body">
+                        <div class="setting-item">
+                            <span class="setting-label">
+                                <i class="bi bi-gear me-2"></i>Configuración
+                            </span>
+                            <i class="bi bi-chevron-right text-muted"></i>
+                        </div>
+                        <div class="setting-item">
+                            <span class="setting-label">
+                                <i class="bi bi-credit-card me-2"></i>Suscripción
+                            </span>
+                            <i class="bi bi-chevron-right text-muted"></i>
+                        </div>
+                        <div class="setting-item">
+                            <span class="setting-label">
+                                <i class="bi bi-arrow-clockwise me-2"></i>Auto Renovar
+                            </span>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" checked>
+                            </div>
+                        </div>
+                        <div class="setting-item">
+                            <span class="setting-label">
+                                <i class="bi bi-bell me-2"></i>Notificaciones
+                            </span>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox">
+                            </div>
+                        </div>
+                        <div class="setting-item">
+                            <span class="setting-label">
+                                <i class="bi bi-arrow-clockwise me-2"></i>Auto Renovar
+                            </span>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" checked>
+                            </div>
+                        </div>
+                        <div class="setting-item">
+                            <span class="setting-label">
+                                <i class="bi bi-trophy me-2"></i>Logros
+                            </span>
+                            <span class="badge bg-primary">3,200%</span>
+                        </div>
+                        <div class="setting-item">
+                            <span class="setting-label">
+                                <i class="bi bi-box-arrow-right me-2"></i>Logout
+                            </span>
+                            <i class="bi bi-chevron-right text-muted"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Activity Chart
+        const activityCtx = document.getElementById('activityChart').getContext('2d');
+        new Chart(activityCtx, {
+            type: 'line',
+            data: {
+                labels: ['Ene 02', 'Ene 03', 'Ene 04', 'Ene 05', 'Ene 06', 'Ene 07'],
+                datasets: [{
+                    label: 'Actividad',
+                    data: [80, 60, 65, 45, 120, 100],
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }, {
+                    label: 'Registros',
+                    data: [70, 80, 55, 65, 110, 85],
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 130
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+
+        // Device Usage Chart
+        const deviceCtx = document.getElementById('deviceChart').getContext('2d');
+        new Chart(deviceCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['iOS', 'Android', 'Blackberry', 'Symbian', 'Others'],
+                datasets: [{
+                    data: [30, 10, 20, 15, 30],
+                    backgroundColor: [
+                        '#007bff',
+                        '#28a745',
+                        '#6f42c1',
+                        '#17a2b8',
+                        '#dc3545'
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '70%',
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+
+        // Mobile menu toggle
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            sidebar.classList.toggle('show');
+        }
+    </script>
+</body>
+</html>
