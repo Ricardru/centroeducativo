@@ -852,6 +852,9 @@ window.handleLogout = handleLogout;
 function showProductoModal(mode = 'new', producto = null) {
     const modalEl = document.getElementById('modalProducto');
     if (!modalEl) return;
+    // Si el sidebar offcanvas está abierto, cerrarlo para evitar backdrops superpuestos
+    const sidebarEl = document.getElementById('sidebar');
+    try { const off = bootstrap.Offcanvas.getInstance(sidebarEl); if (off) off.hide(); } catch (e) { /* no-op */ }
     const modal = new bootstrap.Modal(modalEl);
     document.getElementById('productoId').value = producto?.id || '';
     document.getElementById('productoNombre').value = producto?.nombre || '';
@@ -934,6 +937,9 @@ document.getElementById('btnEliminarProducto')?.addEventListener('click', async 
 function showUnidadModal(mode = 'new', unidad = null) {
     const modalEl = document.getElementById('modalUnidad');
     if (!modalEl) return;
+    // Si el sidebar offcanvas está abierto, cerrarlo para evitar backdrops superpuestos
+    const sidebarEl = document.getElementById('sidebar');
+    try { const off = bootstrap.Offcanvas.getInstance(sidebarEl); if (off) off.hide(); } catch (e) { /* no-op */ }
     const modal = new bootstrap.Modal(modalEl);
     document.getElementById('unidadId').value = unidad?.id || '';
     document.getElementById('unidadNombre').value = unidad?.nombre || '';
