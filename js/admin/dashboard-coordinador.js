@@ -935,8 +935,39 @@ function scheduleModalBackdropCleanup(modalEl, attempts = [80, 300, 700]) {
             });
             // Ensure body has modal-open so scroll is locked when modal visible
             if (!document.body.classList.contains('modal-open')) document.body.classList.add('modal-open');
+            // También intentar eliminar elementos que cubran el centro del modal
+            try { removeCoveringElements(modalEl); } catch (e) { /* ignore */ }
         } catch (e) { /* ignore */ }
     }, ms));
+}
+
+// Aggressive: remove any covering element over the modal center that is not the modal or its backdrop
+function removeCoveringElements(modalEl) {
+    if (!(modalEl instanceof HTMLElement)) return;
+    const rect = modalEl.getBoundingClientRect();
+    const cx = Math.round(rect.left + rect.width / 2);
+    const cy = Math.round(rect.top + rect.height / 2);
+    try {
+        const topEl = document.elementFromPoint(cx, cy);
+        if (!topEl) return;
+        // If the top element is the modal or inside it, nothing to do
+        if (modalEl.contains(topEl) || topEl === modalEl) return;
+        // If it's a backdrop we control, ensure its z-index is below modal
+        if (topEl.classList && (topEl.classList.contains('modal-backdrop') || topEl.classList.contains('offcanvas-backdrop'))) {
+            const z = Number(window.getComputedStyle(topEl).zIndex || 0);
+            const mz = Number(modalEl.style.zIndex || 20050);
+            if (z >= mz) {
+                console.warn('[modal-debug] lowering/removing backdrop placed above modal', { z, mz, el: topEl });
+                topEl.remove();
+            }
+            return;
+        }
+        // Otherwise, remove the covering element (might be third-party overlay)
+        console.warn('[modal-debug] removing unexpected covering element over modal center:', topEl);
+        topEl.remove();
+    } catch (e) {
+        /* ignore */
+    }
 }
 
 // Global defensive handler: before any modal shows, try to remove offcanvas backdrops that could cover it
@@ -986,6 +1017,8 @@ async function showProductoModal(mode = 'new', producto = null) {
         modalEl.style.zIndex = '20050';
         // Programar limpieza por si otro componente añade backdrops posteriormente
         scheduleModalBackdropCleanup(modalEl);
+        // Intento agresivo: eliminar elementos que cubran el centro del modal
+        try { removeCoveringElements(modalEl); setTimeout(() => removeCoveringElements(modalEl), 120); } catch (e) { /* ignore */ }
     });
         // Programar limpieza por si otro componente añade backdrops posteriormente
         scheduleModalBackdropCleanup(modalEl);
