@@ -992,9 +992,12 @@ document.addEventListener('show.bs.modal', (e) => {
 }, true);
 
 // Mostrar modal producto: mode = 'new'|'edit' (comportamiento similar a modal de calendario)
-function showProductoModal(mode = 'new', producto = null) {
+async function showProductoModal(mode = 'new', producto = null) {
     const modalEl = document.getElementById('modalProducto');
     if (!modalEl) return;
+
+    // Esperar que el sidebar/offcanvas esté completamente oculto para evitar backdrops en conflicto
+    try { await ensureSidebarHidden(); } catch (e) { /* ignore */ }
 
     // Obtener o crear instancia del modal (patrón igual que calendario)
     let modal = bootstrap.Modal.getInstance(modalEl);
@@ -1080,9 +1083,12 @@ document.getElementById('btnEliminarProducto')?.addEventListener('click', async 
 });
 
 // Mostrar/editar unidades
-function showUnidadModal(mode = 'new', unidad = null) {
+async function showUnidadModal(mode = 'new', unidad = null) {
     const modalEl = document.getElementById('modalUnidad');
     if (!modalEl) return;
+
+    // Esperar que el sidebar/offcanvas esté completamente oculto para evitar backdrops en conflicto
+    try { await ensureSidebarHidden(); } catch (e) { /* ignore */ }
 
     let modal = bootstrap.Modal.getInstance(modalEl);
     if (!modal) modal = new bootstrap.Modal(modalEl);
