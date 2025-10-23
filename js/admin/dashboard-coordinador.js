@@ -52,6 +52,9 @@ const CONFIG = {
     tiposEvento: ['clase', 'reunion', 'evaluacion', 'actividad', 'feriado']
 };
 
+// Contenedor actual para refrescos desde CRUD
+let lastMainContainer = null;
+
 // Inicialización cuando el DOM está listo
 document.addEventListener('DOMContentLoaded', async () => {
     await importarLibrerias();
@@ -157,6 +160,7 @@ function configurarNavegacion() {
 async function cargarSeccion(seccion) {
     try {
         const mainContent = document.getElementById('mainContent');
+        lastMainContainer = mainContent;
         if (!mainContent) return;
 
         // Determinar si el usuario puede editar esta sección
@@ -187,6 +191,12 @@ async function cargarSeccion(seccion) {
                 break;
             case 'documentos':
                 await cargarDocumentos(mainContent);
+                break;
+            case 'productos':
+                await cargarProductos(mainContent);
+                break;
+            case 'unidades':
+                await cargarUnidades(mainContent);
                 break;
             case 'reportes-academicos':
                 await cargarReportesAcademicos(mainContent);
@@ -567,6 +577,204 @@ async function cargarReportesAcademicos(container) {
     `;
 }
 
+// Función para cargar la gestión de Productos
+async function cargarProductos(container) {
+    try {
+        container.innerHTML = `
+            <div class="row mb-4">
+                <div class="col-12 d-flex justify-content-between align-items-center">
+                    <h2><i class="bi bi-bag-fill me-2"></i>Productos</h2>
+                    <button class="btn btn-primary" id="btnNuevoProducto"><i class="bi bi-plus-circle"></i> Nuevo Producto</button>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped" id="tablaProductos">
+                            <thead>
+                                <tr>
+                                    <th>Nombre</th>
+                                    <th>SKU</th>
+                                    <th>Unidad (ID)</th>
+                                    <th>Precio</th>
+                                    <th>Activo</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Obtener unidades y mapear
+        const { data: unidades, error: errorUnidades } = await supabase
+            .from('unidades_medida')
+            .select('id, nombre')
+            .order('nombre', { ascending: true });
+
+        if (errorUnidades) throw errorUnidades;
+
+        const unidadesMap = {};
+        (unidades || []).forEach(u => unidadesMap[u.id] = u.nombre);
+
+        // Llenar select del modal de producto
+        const selectUnidad = document.getElementById('productoUnidad');
+        if (selectUnidad) {
+            selectUnidad.innerHTML = '<option value="">-- Sin seleccionar --</option>' + (unidades || []).map(u => `<option value="${u.id}">${u.nombre}</option>`).join('');
+        }
+
+        // Obtener productos desde Supabase
+        const { data: productos, error } = await supabase
+            .from('productos')
+            .select('id, nombre, sku, precio, unidad_medida_id, activo, descripcion')
+            .order('nombre', { ascending: true });
+
+        if (error) throw error;
+
+        const tabla = new DataTable('#tablaProductos', {
+            data: productosToTableData(productos || [], unidadesMap),
+            columns: [
+                { data: 'nombre', title: 'Nombre' },
+                { data: 'sku', title: 'SKU' },
+                { data: 'unidad', title: 'Unidad' },
+                { data: 'precio', title: 'Precio' },
+                { data: 'activo', title: 'Activo' },
+                { data: 'acciones', title: 'Acciones' }
+            ],
+            responsive: true,
+            language: { url: 'https://cdn.datatables.net/plug-ins/1.10.25/i18n/Spanish.json' }
+        });
+
+        // Eventos del botón nuevo
+        document.getElementById('btnNuevoProducto')?.addEventListener('click', () => {
+            showProductoModal('new');
+        });
+
+        // Delegación para editar/eliminar en la tabla
+        document.querySelector('#tablaProductos')?.addEventListener('click', async (e) => {
+            const editar = e.target.closest('.btn-editar-producto');
+            const eliminar = e.target.closest('.btn-eliminar-producto');
+            if (editar) {
+                const id = editar.dataset.id;
+                await editarProducto(id);
+            } else if (eliminar) {
+                const id = eliminar.dataset.id;
+                if (confirm('¿Eliminar este producto?')) {
+                    const { error: errDel } = await supabase.from('productos').delete().eq('id', id);
+                    if (errDel) return mostrarError('Error al eliminar producto');
+                    mostrarExito('Producto eliminado');
+                    await cargarProductos(lastMainContainer);
+                }
+            }
+        });
+
+    } catch (err) {
+        console.error('Error al cargar productos:', err);
+        mostrarError('Error al cargar productos');
+    }
+}
+
+function productosToTableData(arr, unidadesMap = {}) {
+    // Mapear productos a formato DataTable y reemplazar unidad por nombre
+    return (arr || []).map(p => ({
+        nombre: p.nombre,
+        sku: p.sku || '-',
+        unidad: unidadesMap[p.unidad_medida_id] || (p.unidad_medida_id || '-'),
+        precio: p.precio != null ? p.precio : '-',
+        activo: p.activo ? 'Sí' : 'No',
+        acciones: `
+            <button class="btn btn-sm btn-outline-primary btn-editar-producto" data-id="${p.id}"><i class="bi bi-pencil"></i></button>
+            <button class="btn btn-sm btn-outline-danger btn-eliminar-producto" data-id="${p.id}"><i class="bi bi-trash"></i></button>
+        `
+    }));
+}
+
+// Función para cargar Unidades de Medida
+async function cargarUnidades(container) {
+    try {
+        container.innerHTML = `
+            <div class="row mb-4">
+                <div class="col-12 d-flex justify-content-between align-items-center">
+                    <h2><i class="bi bi-rulers me-2"></i>Unidades de Medida</h2>
+                    <button class="btn btn-primary" id="btnNuevaUnidad"><i class="bi bi-plus-circle"></i> Nueva Unidad</button>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped" id="tablaUnidades">
+                            <thead>
+                                <tr>
+                                    <th>Nombre</th>
+                                    <th>Símbolo</th>
+                                    <th>Descripción</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const { data: unidades, error } = await supabase
+            .from('unidades_medida')
+            .select('id, nombre, simbolo, descripcion')
+            .order('nombre', { ascending: true });
+
+        if (error) throw error;
+
+        const tabla = new DataTable('#tablaUnidades', {
+            data: (unidades || []).map(u => ({
+                nombre: u.nombre,
+                simbolo: u.simbolo || '-',
+                descripcion: u.descripcion || '-',
+                acciones: `
+                    <button class="btn btn-sm btn-outline-primary btn-editar-unidad" data-id="${u.id}"><i class="bi bi-pencil"></i></button>
+                    <button class="btn btn-sm btn-outline-danger btn-eliminar-unidad" data-id="${u.id}"><i class="bi bi-trash"></i></button>
+                `
+            })),
+            columns: [
+                { data: 'nombre', title: 'Nombre' },
+                { data: 'simbolo', title: 'Símbolo' },
+                { data: 'descripcion', title: 'Descripción' },
+                { data: 'acciones', title: 'Acciones' }
+            ],
+            responsive: true,
+            language: { url: 'https://cdn.datatables.net/plug-ins/1.10.25/i18n/Spanish.json' }
+        });
+
+        document.getElementById('btnNuevaUnidad')?.addEventListener('click', () => {
+            showUnidadModal('new');
+        });
+
+        // Delegación para editar/eliminar en la tabla de unidades
+        document.querySelector('#tablaUnidades')?.addEventListener('click', async (e) => {
+            const editar = e.target.closest('.btn-editar-unidad');
+            const eliminar = e.target.closest('.btn-eliminar-unidad');
+            if (editar) {
+                const id = editar.dataset.id;
+                await editarUnidad(id);
+            } else if (eliminar) {
+                const id = eliminar.dataset.id;
+                if (confirm('¿Eliminar esta unidad de medida?')) {
+                    const { error: errDel } = await supabase.from('unidades_medida').delete().eq('id', id);
+                    if (errDel) return mostrarError('Error al eliminar unidad');
+                    mostrarExito('Unidad eliminada');
+                    await cargarUnidades(lastMainContainer);
+                }
+            }
+        });
+
+    } catch (err) {
+        console.error('Error al cargar unidades de medida:', err);
+        mostrarError('Error al cargar unidades de medida');
+    }
+}
+
 // Función para cargar estadísticas
 async function cargarEstadisticas(container) {
     container.innerHTML = `
@@ -625,3 +833,134 @@ async function cargarDatosDashboard() {
 
 // Exportar funciones necesarias
 window.handleLogout = handleLogout;
+
+/* ------------------ Modales y CRUD Productos / Unidades ------------------ */
+
+// Mostrar modal producto: mode = 'new'|'edit'
+function showProductoModal(mode = 'new', producto = null) {
+    const modalEl = document.getElementById('modalProducto');
+    if (!modalEl) return;
+    const modal = new bootstrap.Modal(modalEl);
+    document.getElementById('productoId').value = producto?.id || '';
+    document.getElementById('productoNombre').value = producto?.nombre || '';
+    document.getElementById('productoSKU').value = producto?.sku || '';
+    document.getElementById('productoPrecio').value = producto?.precio != null ? producto.precio : '';
+    document.getElementById('productoDescripcion').value = producto?.descripcion || '';
+    document.getElementById('productoActivo').checked = producto?.activo ?? true;
+    if (producto?.unidad_medida_id) document.getElementById('productoUnidad').value = producto.unidad_medida_id;
+
+    // Mostrar/ocultar botón eliminar
+    const btnEliminar = document.getElementById('btnEliminarProducto');
+    if (btnEliminar) btnEliminar.style.display = mode === 'edit' ? 'inline-block' : 'none';
+    modal.show();
+}
+
+async function editarProducto(id) {
+    const { data: producto, error } = await supabase.from('productos').select('*').eq('id', id).single();
+    if (error) return mostrarError('Error al obtener producto');
+    showProductoModal('edit', producto);
+}
+
+// Form submit producto
+document.getElementById('formProducto')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('productoId').value;
+    const payload = {
+        nombre: document.getElementById('productoNombre').value.trim(),
+        sku: document.getElementById('productoSKU').value.trim() || null,
+        descripcion: document.getElementById('productoDescripcion').value.trim() || null,
+        unidad_medida_id: document.getElementById('productoUnidad').value || null,
+        precio: document.getElementById('productoPrecio').value ? Number(document.getElementById('productoPrecio').value) : null,
+        activo: document.getElementById('productoActivo').checked
+    };
+
+    try {
+        if (!payload.nombre) return mostrarError('El nombre del producto es requerido');
+        if (id) {
+            const { error } = await supabase.from('productos').update(payload).eq('id', id);
+            if (error) throw error;
+            mostrarExito('Producto actualizado');
+        } else {
+            const { error } = await supabase.from('productos').insert([payload]);
+            if (error) throw error;
+            mostrarExito('Producto creado');
+        }
+        bootstrap.Modal.getInstance(document.getElementById('modalProducto'))?.hide();
+        await cargarProductos(lastMainContainer);
+    } catch (err) {
+        console.error(err);
+        mostrarError('Error al guardar producto');
+    }
+});
+
+// Eliminar desde modal
+document.getElementById('btnEliminarProducto')?.addEventListener('click', async () => {
+    const id = document.getElementById('productoId').value;
+    if (!id) return;
+    if (!confirm('¿Eliminar este producto?')) return;
+    const { error } = await supabase.from('productos').delete().eq('id', id);
+    if (error) return mostrarError('Error al eliminar producto');
+    mostrarExito('Producto eliminado');
+    bootstrap.Modal.getInstance(document.getElementById('modalProducto'))?.hide();
+    await cargarProductos(lastMainContainer);
+});
+
+// Mostrar/editar unidades
+function showUnidadModal(mode = 'new', unidad = null) {
+    const modalEl = document.getElementById('modalUnidad');
+    if (!modalEl) return;
+    const modal = new bootstrap.Modal(modalEl);
+    document.getElementById('unidadId').value = unidad?.id || '';
+    document.getElementById('unidadNombre').value = unidad?.nombre || '';
+    document.getElementById('unidadSimbolo').value = unidad?.simbolo || '';
+    document.getElementById('unidadDescripcion').value = unidad?.descripcion || '';
+    const btnEliminar = document.getElementById('btnEliminarUnidad');
+    if (btnEliminar) btnEliminar.style.display = mode === 'edit' ? 'inline-block' : 'none';
+    modal.show();
+}
+
+async function editarUnidad(id) {
+    const { data, error } = await supabase.from('unidades_medida').select('*').eq('id', id).single();
+    if (error) return mostrarError('Error al obtener unidad');
+    showUnidadModal('edit', data);
+}
+
+// Form submit unidad
+document.getElementById('formUnidad')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('unidadId').value;
+    const payload = {
+        nombre: document.getElementById('unidadNombre').value.trim(),
+        simbolo: document.getElementById('unidadSimbolo').value.trim() || null,
+        descripcion: document.getElementById('unidadDescripcion').value.trim() || null
+    };
+    try {
+        if (!payload.nombre) return mostrarError('El nombre de la unidad es requerido');
+        if (id) {
+            const { error } = await supabase.from('unidades_medida').update(payload).eq('id', id);
+            if (error) throw error;
+            mostrarExito('Unidad actualizada');
+        } else {
+            const { error } = await supabase.from('unidades_medida').insert([payload]);
+            if (error) throw error;
+            mostrarExito('Unidad creada');
+        }
+        bootstrap.Modal.getInstance(document.getElementById('modalUnidad'))?.hide();
+        await cargarUnidades(lastMainContainer);
+    } catch (err) {
+        console.error(err);
+        mostrarError('Error al guardar unidad');
+    }
+});
+
+// Eliminar unidad desde modal
+document.getElementById('btnEliminarUnidad')?.addEventListener('click', async () => {
+    const id = document.getElementById('unidadId').value;
+    if (!id) return;
+    if (!confirm('¿Eliminar esta unidad?')) return;
+    const { error } = await supabase.from('unidades_medida').delete().eq('id', id);
+    if (error) return mostrarError('Error al eliminar unidad');
+    mostrarExito('Unidad eliminada');
+    bootstrap.Modal.getInstance(document.getElementById('modalUnidad'))?.hide();
+    await cargarUnidades(lastMainContainer);
+});
