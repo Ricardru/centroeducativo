@@ -989,56 +989,31 @@ document.addEventListener('show.bs.modal', (e) => {
     }
 }, true);
 
-// Mostrar modal producto: mode = 'new'|'edit'
-async function showProductoModal(mode = 'new', producto = null) {
+// Mostrar modal producto: mode = 'new'|'edit' (comportamiento similar a modal de calendario)
+function showProductoModal(mode = 'new', producto = null) {
     const modalEl = document.getElementById('modalProducto');
     if (!modalEl) return;
-    // Esperar a que el sidebar (si está abierto) se oculte completamente
-    await ensureSidebarHidden();
-    // Eliminar cualquier backdrop residual que pueda quedar (offcanvas o modal)
-    document.querySelectorAll('.offcanvas-backdrop, .modal-backdrop').forEach(n => n.remove());
-    // Asegurar que el body no tenga clases que impidan interacción
-    document.body.classList.remove('modal-open');
-    // Asegurar que el modal esté en el body para evitar que quede debajo de otros elementos
-    try { if (modalEl.parentElement !== document.body) document.body.appendChild(modalEl); } catch (e) { /* no-op */ }
 
-    // Forzar z-index alto para el modal; backdrop se ajustará al mostrarse
-    modalEl.style.zIndex = '20050';
+    // Obtener o crear instancia del modal (patrón igual que calendario)
+    let modal = bootstrap.Modal.getInstance(modalEl);
+    if (!modal) modal = new bootstrap.Modal(modalEl);
 
-    // Crear modal con opciones por defecto y mostrar
-    const modal = new bootstrap.Modal(modalEl, { backdrop: true, keyboard: true });
-    modalEl.addEventListener('shown.bs.modal', () => {
-        const backdrop = document.querySelector('.modal-backdrop');
-        if (backdrop) {
-            backdrop.style.zIndex = '20040';
-            // Evitar que backdrop capture eventos pointer si hay problemas
-            backdrop.style.pointerEvents = 'auto';
-        }
-        modalEl.style.zIndex = '20050';
-        // Programar limpieza por si otro componente añade backdrops posteriormente
-        scheduleModalBackdropCleanup(modalEl);
-        // Intento agresivo: eliminar elementos que cubran el centro del modal
-        try { removeCoveringElements(modalEl); setTimeout(() => removeCoveringElements(modalEl), 120); } catch (e) { /* ignore */ }
-    });
-        // Programar limpieza por si otro componente añade backdrops posteriormente
-        scheduleModalBackdropCleanup(modalEl);
-
+    // Rellenar campos del formulario
     document.getElementById('productoId').value = producto?.id || '';
     document.getElementById('productoNombre').value = producto?.nombre || '';
     document.getElementById('productoSKU').value = producto?.sku || '';
     document.getElementById('productoPrecio').value = producto?.precio != null ? producto.precio : '';
     document.getElementById('productoDescripcion').value = producto?.descripcion || '';
     document.getElementById('productoActivo').checked = producto?.activo ?? true;
-    // Aceptar ambas propiedades normalizadas
     if (producto?.unidad_id) document.getElementById('productoUnidad').value = producto.unidad_id;
-    else if (producto?.unidad_medida_id) document.getElementById('productoUnidad').value = producto.unidad_medida_id;
+    else if (producto?.unidad_medida_id) document.getElementById('productoUnidad').value = producto.unidad_medida_id || '';
 
     // Mostrar/ocultar botón eliminar
     const btnEliminar = document.getElementById('btnEliminarProducto');
     if (btnEliminar) btnEliminar.style.display = mode === 'edit' ? 'inline-block' : 'none';
+
+    // Dejar el manejo del submit en el listener global ya presente
     modal.show();
-    // También ejecutar limpieza defensiva inmediatamente tras show en caso de race
-    scheduleModalBackdropCleanup(modalEl);
 }
 
 async function editarProducto(id) {
@@ -1103,36 +1078,20 @@ document.getElementById('btnEliminarProducto')?.addEventListener('click', async 
 });
 
 // Mostrar/editar unidades
-async function showUnidadModal(mode = 'new', unidad = null) {
+function showUnidadModal(mode = 'new', unidad = null) {
     const modalEl = document.getElementById('modalUnidad');
     if (!modalEl) return;
-    // Si el sidebar offcanvas está abierto, cerrarlo para evitar backdrops superpuestos
-    const sidebarEl = document.getElementById('sidebar');
-    try { const off = bootstrap.Offcanvas.getInstance(sidebarEl); if (off) off.hide(); } catch (e) { /* no-op */ }
-    // Eliminar cualquier backdrop residual que pueda quedar (offcanvas o modal)
-        await ensureSidebarHidden();
-        // Eliminar cualquier backdrop residual que pueda quedar (offcanvas o modal)
-        document.querySelectorAll('.offcanvas-backdrop, .modal-backdrop').forEach(n => n.remove());
-        document.body.classList.remove('modal-open');
-        try { if (modalEl.parentElement !== document.body) document.body.appendChild(modalEl); } catch (e) { /* no-op */ }
-        modalEl.style.zIndex = '20050';
-        const modal = new bootstrap.Modal(modalEl, { backdrop: true, keyboard: true });
-        modalEl.addEventListener('shown.bs.modal', () => {
-            const backdrop = document.querySelector('.modal-backdrop');
-            if (backdrop) {
-                backdrop.style.zIndex = '20040';
-                backdrop.style.pointerEvents = 'auto';
-            }
-            modalEl.style.zIndex = '20050';
-        });
 
-        document.getElementById('unidadId').value = unidad?.id || '';
-        document.getElementById('unidadCodigo').value = unidad?.codigo || '';
-        document.getElementById('unidadNombre').value = unidad?.nombre || '';
-        document.getElementById('unidadDescripcion').value = unidad?.descripcion || '';
-        const btnEliminar = document.getElementById('btnEliminarUnidad');
-        if (btnEliminar) btnEliminar.style.display = mode === 'edit' ? 'inline-block' : 'none';
-        modal.show();
+    let modal = bootstrap.Modal.getInstance(modalEl);
+    if (!modal) modal = new bootstrap.Modal(modalEl);
+
+    document.getElementById('unidadId').value = unidad?.id || '';
+    document.getElementById('unidadCodigo').value = unidad?.codigo || '';
+    document.getElementById('unidadNombre').value = unidad?.nombre || '';
+    document.getElementById('unidadDescripcion').value = unidad?.descripcion || '';
+    const btnEliminar = document.getElementById('btnEliminarUnidad');
+    if (btnEliminar) btnEliminar.style.display = mode === 'edit' ? 'inline-block' : 'none';
+    modal.show();
 }
 
 async function editarUnidad(id) {
