@@ -860,6 +860,15 @@ function showProductoModal(mode = 'new', producto = null) {
     // Asegurar que el body no tenga clases que impidan interacción
     document.body.classList.remove('modal-open');
     const modal = new bootstrap.Modal(modalEl);
+    // Asegurar que el modal esté en el body para evitar que quede debajo de otros elementos
+    try { if (modalEl.parentElement !== document.body) document.body.appendChild(modalEl); } catch (e) { /* no-op */ }
+    // Forzar z-index alto para el modal y ajustar backdrop cuando aparezca
+    modalEl.style.zIndex = '20050';
+    modalEl.addEventListener('shown.bs.modal', () => {
+        const backdrop = document.querySelector('.modal-backdrop');
+        if (backdrop) backdrop.style.zIndex = '20040';
+        modalEl.style.zIndex = '20050';
+    });
     document.getElementById('productoId').value = producto?.id || '';
     document.getElementById('productoNombre').value = producto?.nombre || '';
     document.getElementById('productoSKU').value = producto?.sku || '';
@@ -948,6 +957,13 @@ function showUnidadModal(mode = 'new', unidad = null) {
     document.querySelectorAll('.offcanvas-backdrop, .modal-backdrop').forEach(n => n.remove());
     document.body.classList.remove('modal-open');
     const modal = new bootstrap.Modal(modalEl);
+    try { if (modalEl.parentElement !== document.body) document.body.appendChild(modalEl); } catch (e) { /* no-op */ }
+    modalEl.style.zIndex = '20050';
+    modalEl.addEventListener('shown.bs.modal', () => {
+        const backdrop = document.querySelector('.modal-backdrop');
+        if (backdrop) backdrop.style.zIndex = '20040';
+        modalEl.style.zIndex = '20050';
+    });
     document.getElementById('unidadId').value = unidad?.id || '';
     document.getElementById('unidadNombre').value = unidad?.nombre || '';
     document.getElementById('unidadSimbolo').value = unidad?.simbolo || '';
