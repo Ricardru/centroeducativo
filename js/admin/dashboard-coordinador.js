@@ -640,6 +640,7 @@ async function cargarProductos(container) {
             sku: p.sku ?? p.codigo ?? null,
             precio: p.precio ?? p.price ?? null,
             unidad_medida_id: p.unidad_medida_id ?? p.unidad_id ?? p.unidad ?? null,
+            unidad_id: p.unidad_id ?? p.unidad_medida_id ?? p.unidad ?? null,
             activo: typeof p.activo !== 'undefined' ? p.activo : (p.enabled ?? true),
             descripcion: p.descripcion ?? p.description ?? null
         }));
@@ -692,7 +693,7 @@ function productosToTableData(arr, unidadesMap = {}) {
     return (arr || []).map(p => ({
         nombre: p.nombre,
         sku: p.sku || '-',
-        unidad: unidadesMap[p.unidad_medida_id] || (p.unidad_medida_id || '-'),
+        unidad: unidadesMap[p.unidad_id || p.unidad_medida_id] || (p.unidad_id || p.unidad_medida_id || '-'),
         precio: p.precio != null ? p.precio : '-',
         activo: p.activo ? 'Sí' : 'No',
         acciones: `
@@ -858,7 +859,9 @@ function showProductoModal(mode = 'new', producto = null) {
     document.getElementById('productoPrecio').value = producto?.precio != null ? producto.precio : '';
     document.getElementById('productoDescripcion').value = producto?.descripcion || '';
     document.getElementById('productoActivo').checked = producto?.activo ?? true;
-    if (producto?.unidad_medida_id) document.getElementById('productoUnidad').value = producto.unidad_medida_id;
+    // Aceptar ambas propiedades normalizadas
+    if (producto?.unidad_id) document.getElementById('productoUnidad').value = producto.unidad_id;
+    else if (producto?.unidad_medida_id) document.getElementById('productoUnidad').value = producto.unidad_medida_id;
 
     // Mostrar/ocultar botón eliminar
     const btnEliminar = document.getElementById('btnEliminarProducto');
@@ -867,8 +870,19 @@ function showProductoModal(mode = 'new', producto = null) {
 }
 
 async function editarProducto(id) {
-    const { data: producto, error } = await supabase.from('productos').select('*').eq('id', id).single();
+    const { data: productoRaw, error } = await supabase.from('productos').select('*').eq('id', id).single();
     if (error) return mostrarError('Error al obtener producto');
+    // Normalizar campos como en la lista
+    const producto = {
+        id: productoRaw.id,
+        nombre: productoRaw.nombre ?? productoRaw.name ?? null,
+        sku: productoRaw.sku ?? productoRaw.codigo ?? null,
+        precio: productoRaw.precio ?? productoRaw.price ?? null,
+        unidad_medida_id: productoRaw.unidad_medida_id ?? productoRaw.unidad_id ?? productoRaw.unidad ?? null,
+        unidad_id: productoRaw.unidad_id ?? productoRaw.unidad_medida_id ?? productoRaw.unidad ?? null,
+        activo: typeof productoRaw.activo !== 'undefined' ? productoRaw.activo : (productoRaw.enabled ?? true),
+        descripcion: productoRaw.descripcion ?? productoRaw.description ?? null
+    };
     showProductoModal('edit', producto);
 }
 
@@ -880,7 +894,7 @@ document.getElementById('formProducto')?.addEventListener('submit', async (e) =>
         nombre: document.getElementById('productoNombre').value.trim(),
         sku: document.getElementById('productoSKU').value.trim() || null,
         descripcion: document.getElementById('productoDescripcion').value.trim() || null,
-        unidad_medida_id: document.getElementById('productoUnidad').value || null,
+        unidad_id: document.getElementById('productoUnidad').value || null,
         precio: document.getElementById('productoPrecio').value ? Number(document.getElementById('productoPrecio').value) : null,
         activo: document.getElementById('productoActivo').checked
     };
