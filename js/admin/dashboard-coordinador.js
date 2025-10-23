@@ -6,7 +6,7 @@ import { inicializarModuloImagenes } from './imagenes.js';
 import { cargarCalificaciones } from './modules/calificaciones.js';
 import { mostrarError, mostrarExito, formatearEstadoAsistencia, formatearFecha } from './utils.js';
 
-const VERSION = '1.0.32';
+const VERSION = '1.0.33';
 
 // Importar librerías externas
 const importarLibrerias = async () => {
@@ -792,7 +792,16 @@ async function cargarUnidades(container) {
         });
 
     } catch (err) {
-        console.error('Error al cargar unidades de medida:', err);
+        // Mostrar detalles más explícitos para diagnosticar problemas de esquema (42703)
+        try {
+            console.error('Error al cargar unidades de medida:', err);
+            console.error('detalles error =>', {
+                code: err?.code,
+                message: err?.message,
+                details: err?.details,
+                hint: err?.hint
+            });
+        } catch (e) { console.error(e); }
         mostrarError('Error al cargar unidades de medida');
     }
 }
