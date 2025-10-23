@@ -103,13 +103,54 @@ async function inicializarDashboard() {
 
 // Función para configurar la navegación
 function configurarNavegacion() {
-    document.querySelectorAll('.nav-link[data-section]').forEach(link => {
+    // Navegación del sidebar
+    document.querySelectorAll('.nav-section-items a[data-section]').forEach(link => {
         link.addEventListener('click', (e) => {
             e.preventDefault();
-            const seccion = e.target.closest('.nav-link').dataset.section;
+            
+            // Remover clase active de todos los enlaces
+            document.querySelectorAll('.nav-section-items a').forEach(l => l.classList.remove('active'));
+            
+            // Agregar clase active al enlace clickeado
+            link.classList.add('active');
+            
+            const seccion = link.dataset.section;
             cargarSeccion(seccion);
+            
+            // Cerrar sidebar en móviles
+            const sidebar = document.getElementById('sidebar');
+            if (window.innerWidth < 992) {
+                const offcanvas = bootstrap.Offcanvas.getInstance(sidebar);
+                if (offcanvas) offcanvas.hide();
+            }
         });
     });
+    
+    // Delegación de eventos para botones dinámicos del dashboard
+    document.addEventListener('click', (e) => {
+        if (e.target.matches('button[data-section]') || e.target.closest('button[data-section]')) {
+            const button = e.target.matches('button[data-section]') ? e.target : e.target.closest('button[data-section]');
+            const seccion = button.dataset.section;
+            
+            // Actualizar navegación del sidebar
+            document.querySelectorAll('.nav-section-items a').forEach(l => l.classList.remove('active'));
+            const sidebarLink = document.querySelector(`.nav-section-items a[data-section="${seccion}"]`);
+            if (sidebarLink) {
+                sidebarLink.classList.add('active');
+            }
+            
+            cargarSeccion(seccion);
+        }
+    });
+    
+    // Cargar dashboard por defecto
+    cargarSeccion('dashboard');
+    
+    // Marcar dashboard como activo
+    const dashboardLink = document.querySelector('.nav-section-items a[data-section="dashboard"]');
+    if (dashboardLink) {
+        dashboardLink.classList.add('active');
+    }
 }
 
 // Función para cargar una sección
@@ -123,6 +164,9 @@ async function cargarSeccion(seccion) {
 
         // Cargar datos según la sección
         switch (seccion) {
+            case 'dashboard':
+                await cargarDashboardPrincipal(mainContent);
+                break;
             case 'calendario':
                 await cargarEventosCalendario(mainContent);
                 break;
@@ -140,6 +184,15 @@ async function cargarSeccion(seccion) {
                 break;
             case 'asistencias':
                 await cargarAsistencias(mainContent, false); // Solo lectura
+                break;
+            case 'documentos':
+                await cargarDocumentos(mainContent);
+                break;
+            case 'reportes-academicos':
+                await cargarReportesAcademicos(mainContent);
+                break;
+            case 'estadisticas':
+                await cargarEstadisticas(mainContent);
                 break;
             default:
                 mainContent.innerHTML = '<div class="alert alert-warning">Sección no encontrada</div>';
@@ -343,6 +396,230 @@ async function handleLogout() {
     } catch (error) {
         console.error('Error al cerrar sesión:', error);
         mostrarError('Error al cerrar sesión');
+    }
+}
+
+// Función para cargar el dashboard principal
+async function cargarDashboardPrincipal(container) {
+    try {
+        container.innerHTML = `
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h2 class="mb-0">
+                            <i class="bi bi-speedometer2 me-2"></i>Dashboard Principal
+                        </h2>
+                        <div class="text-muted">
+                            ${new Date().toLocaleDateString('es-ES', { 
+                                weekday: 'long', 
+                                year: 'numeric', 
+                                month: 'long', 
+                                day: 'numeric' 
+                            })}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tarjetas de resumen -->
+            <div class="row mb-4">
+                <div class="col-md-3 col-sm-6 mb-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="card-title">Estudiantes</h6>
+                                    <h3 id="totalEstudiantes">-</h3>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="bi bi-people fs-1"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6 mb-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="card-title">Docentes</h6>
+                                    <h3 id="totalDocentes">-</h3>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="bi bi-person-badge fs-1"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6 mb-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="card-title">Cursos</h6>
+                                    <h3 id="totalCursos">-</h3>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="bi bi-book fs-1"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6 mb-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="card-title">Eventos Hoy</h6>
+                                    <h3 id="eventosHoy">-</h3>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="bi bi-calendar-event fs-1"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Actividades Recientes</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="actividadesRecientes">
+                                <div class="d-flex justify-content-center p-4">
+                                    <div class="spinner-border" role="status">
+                                        <span class="visually-hidden">Cargando...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Accesos Rápidos</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-outline-primary" data-section="calendario">
+                                    <i class="bi bi-calendar me-2"></i>Ver Calendario
+                                </button>
+                                <button class="btn btn-outline-success" data-section="horarios">
+                                    <i class="bi bi-clock me-2"></i>Gestionar Horarios
+                                </button>
+                                <button class="btn btn-outline-info" data-section="calificaciones">
+                                    <i class="bi bi-journal-check me-2"></i>Calificaciones
+                                </button>
+                                <button class="btn btn-outline-warning" data-section="asistencias">
+                                    <i class="bi bi-person-check me-2"></i>Control Asistencia
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Cargar datos de resumen
+        await cargarDatosDashboard();
+        
+    } catch (error) {
+        console.error('Error al cargar dashboard:', error);
+        mostrarError('Error al cargar el dashboard');
+    }
+}
+
+// Función para cargar documentos
+async function cargarDocumentos(container) {
+    container.innerHTML = `
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2><i class="bi bi-file-earmark me-2"></i>Gestión de Documentos</h2>
+            </div>
+        </div>
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle me-2"></i>
+            Módulo de gestión de documentos en desarrollo.
+        </div>
+    `;
+}
+
+// Función para cargar reportes académicos
+async function cargarReportesAcademicos(container) {
+    container.innerHTML = `
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2><i class="bi bi-graph-up me-2"></i>Reportes Académicos</h2>
+            </div>
+        </div>
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle me-2"></i>
+            Módulo de reportes académicos en desarrollo.
+        </div>
+    `;
+}
+
+// Función para cargar estadísticas
+async function cargarEstadisticas(container) {
+    container.innerHTML = `
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2><i class="bi bi-pie-chart me-2"></i>Estadísticas</h2>
+            </div>
+        </div>
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle me-2"></i>
+            Módulo de estadísticas en desarrollo.
+        </div>
+    `;
+}
+
+// Función para cargar datos del dashboard
+async function cargarDatosDashboard() {
+    try {
+        // Simular carga de datos - aquí puedes conectar con Supabase
+        document.getElementById('totalEstudiantes').textContent = '156';
+        document.getElementById('totalDocentes').textContent = '28';
+        document.getElementById('totalCursos').textContent = '12';
+        document.getElementById('eventosHoy').textContent = '3';
+        
+        // Cargar actividades recientes
+        document.getElementById('actividadesRecientes').innerHTML = `
+            <div class="list-group list-group-flush">
+                <div class="list-group-item">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h6 class="mb-1">Nueva calificación registrada</h6>
+                        <small>Hace 2 horas</small>
+                    </div>
+                    <p class="mb-1">Se registró calificación para Matemáticas - 3° A</p>
+                </div>
+                <div class="list-group-item">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h6 class="mb-1">Evento agregado al calendario</h6>
+                        <small>Hace 4 horas</small>
+                    </div>
+                    <p class="mb-1">Reunión de padres - 25 de octubre</p>
+                </div>
+                <div class="list-group-item">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h6 class="mb-1">Horario actualizado</h6>
+                        <small>Ayer</small>
+                    </div>
+                    <p class="mb-1">Cambio de horario en Ciencias - 2° B</p>
+                </div>
+            </div>
+        `;
+        
+    } catch (error) {
+        console.error('Error al cargar datos del dashboard:', error);
     }
 }
 
