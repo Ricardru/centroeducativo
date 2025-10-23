@@ -734,15 +734,23 @@ async function cargarUnidades(container) {
             </div>
         `;
 
-        const { data: unidades, error } = await supabase
+        // Use '*' and normalize fields to tolerate schema differences (avoid 42703 if a column is missing)
+        const { data: unidadesRaw, error } = await supabase
             .from('unidades_medida')
-            .select('id, nombre, simbolo, descripcion')
+            .select('*')
             .order('nombre', { ascending: true });
 
         if (error) throw error;
 
+        const unidades = (unidadesRaw || []).map(u => ({
+            id: u.id,
+            nombre: u.nombre ?? u.name ?? null,
+            simbolo: u.simbolo ?? u.symbol ?? null,
+            descripcion: u.descripcion ?? u.description ?? null
+        }));
+
         const tabla = new DataTable('#tablaUnidades', {
-            data: (unidades || []).map(u => ({
+            data: unidades.map(u => ({
                 nombre: u.nombre,
                 simbolo: u.simbolo || '-',
                 descripcion: u.descripcion || '-',
