@@ -625,13 +625,24 @@ async function cargarProductos(container) {
             selectUnidad.innerHTML = '<option value="">-- Sin seleccionar --</option>' + (unidades || []).map(u => `<option value="${u.id}">${u.nombre}</option>`).join('');
         }
 
-        // Obtener productos desde Supabase
-        const { data: productos, error } = await supabase
+        // Obtener productos desde Supabase (usamos '*' para evitar errores por nombres de columna distintos)
+        const { data: productosRaw, error } = await supabase
             .from('productos')
-            .select('id, nombre, sku, precio, unidad_medida_id, activo, descripcion')
+            .select('*')
             .order('nombre', { ascending: true });
 
         if (error) throw error;
+
+        // Normalizar nombres de campo posibles (unidad_medida_id, unidad_id, unidad)
+        const productos = (productosRaw || []).map(p => ({
+            id: p.id,
+            nombre: p.nombre ?? p.name ?? null,
+            sku: p.sku ?? p.codigo ?? null,
+            precio: p.precio ?? p.price ?? null,
+            unidad_medida_id: p.unidad_medida_id ?? p.unidad_id ?? p.unidad ?? null,
+            activo: typeof p.activo !== 'undefined' ? p.activo : (p.enabled ?? true),
+            descripcion: p.descripcion ?? p.description ?? null
+        }));
 
         const tabla = new DataTable('#tablaProductos', {
             data: productosToTableData(productos || [], unidadesMap),
