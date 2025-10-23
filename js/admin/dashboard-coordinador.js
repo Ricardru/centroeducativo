@@ -855,6 +855,10 @@ function showProductoModal(mode = 'new', producto = null) {
     // Si el sidebar offcanvas está abierto, cerrarlo para evitar backdrops superpuestos
     const sidebarEl = document.getElementById('sidebar');
     try { const off = bootstrap.Offcanvas.getInstance(sidebarEl); if (off) off.hide(); } catch (e) { /* no-op */ }
+    // Eliminar cualquier backdrop residual que pueda quedar (offcanvas o modal)
+    document.querySelectorAll('.offcanvas-backdrop, .modal-backdrop').forEach(n => n.remove());
+    // Asegurar que el body no tenga clases que impidan interacción
+    document.body.classList.remove('modal-open');
     const modal = new bootstrap.Modal(modalEl);
     document.getElementById('productoId').value = producto?.id || '';
     document.getElementById('productoNombre').value = producto?.nombre || '';
@@ -940,6 +944,9 @@ function showUnidadModal(mode = 'new', unidad = null) {
     // Si el sidebar offcanvas está abierto, cerrarlo para evitar backdrops superpuestos
     const sidebarEl = document.getElementById('sidebar');
     try { const off = bootstrap.Offcanvas.getInstance(sidebarEl); if (off) off.hide(); } catch (e) { /* no-op */ }
+    // Eliminar cualquier backdrop residual que pueda quedar (offcanvas o modal)
+    document.querySelectorAll('.offcanvas-backdrop, .modal-backdrop').forEach(n => n.remove());
+    document.body.classList.remove('modal-open');
     const modal = new bootstrap.Modal(modalEl);
     document.getElementById('unidadId').value = unidad?.id || '';
     document.getElementById('unidadNombre').value = unidad?.nombre || '';
