@@ -848,27 +848,148 @@ window.handleLogout = handleLogout;
 
 /* ------------------ Modales y CRUD Productos / Unidades ------------------ */
 
+// Helper: ensure the sidebar offcanvas is fully hidden before continuing
+async function ensureSidebarHidden() {
+    const sidebarEl = document.getElementById('sidebar');
+    if (!sidebarEl) return;
+    try {
+        const off = bootstrap.Offcanvas.getInstance(sidebarEl);
+        if (!off) return;
+        return new Promise(resolve => {
+            // If it's already hidden, resolve quickly
+            // Bootstrap doesn't expose a public "isShown" flag consistently, so rely on event
+            sidebarEl.addEventListener('hidden.bs.offcanvas', function onHidden() {
+                sidebarEl.removeEventListener('hidden.bs.offcanvas', onHidden);
+                // small delay to let backdrops be removed by bootstrap
+                setTimeout(resolve, 50);
+            });
+            try { off.hide(); } catch (e) { resolve(); }
+            // safety timeout in case event doesn't fire
+            setTimeout(resolve, 500);
+        });
+    } catch (e) {
+        return;
+    }
+}
+
+// Debug helper: observe additions/removals of backdrop elements (offcanvas/modal)
+let __modalBackdropObserver = null;
+function installBackdropObserver() {
+    if (__modalBackdropObserver) return __modalBackdropObserver;
+    const obs = new MutationObserver(mutations => {
+        for (const m of mutations) {
+            for (const node of m.addedNodes) {
+                if (!(node instanceof HTMLElement)) continue;
+                if (node.classList.contains('modal-backdrop') || node.classList.contains('offcanvas-backdrop')) {
+                    console.warn('[modal-debug] backdrop added:', node.className, 'computed z:', window.getComputedStyle(node).zIndex);
+                    console.trace();
+                }
+            }
+            for (const node of m.removedNodes) {
+                if (!(node instanceof HTMLElement)) continue;
+                if (node.classList.contains('modal-backdrop') || node.classList.contains('offcanvas-backdrop')) {
+                    console.warn('[modal-debug] backdrop removed:', node.className);
+                }
+            }
+        }
+    });
+    __modalBackdropObserver = obs;
+    return obs;
+}
+
+window.enableModalDebug = function() {
+    try {
+        const obs = installBackdropObserver();
+        obs.observe(document.body, { childList: true, subtree: true });
+        console.info('[modal-debug] enabled');
+    } catch (e) { console.error(e); }
+};
+
+window.disableModalDebug = function() {
+    try {
+        if (__modalBackdropObserver) {
+            __modalBackdropObserver.disconnect();
+            __modalBackdropObserver = null;
+        }
+        console.info('[modal-debug] disabled');
+    } catch (e) { console.error(e); }
+};
+
+// Utility: after showing modal try to remove or fix any backdrop that appears above the modal
+function scheduleModalBackdropCleanup(modalEl, attempts = [80, 300, 700]) {
+    const modalZ = Number(modalEl.style.zIndex || 20050);
+    attempts.forEach(ms => setTimeout(() => {
+        try {
+            // Recompute backdrops
+            document.querySelectorAll('.offcanvas-backdrop, .modal-backdrop').forEach(b => {
+                if (!(b instanceof HTMLElement)) return;
+                const compZ = Number(window.getComputedStyle(b).zIndex || 0);
+                // If backdrop sits above modal, remove or lower it
+                if (compZ > modalZ) {
+                    console.warn('[modal-debug] removing backdrop with higher z-index', compZ, 'modalZ', modalZ);
+                    b.remove();
+                } else {
+                    // Ensure proper pointer behavior
+                    b.style.pointerEvents = b.style.pointerEvents || 'auto';
+                }
+            });
+            // Ensure body has modal-open so scroll is locked when modal visible
+            if (!document.body.classList.contains('modal-open')) document.body.classList.add('modal-open');
+        } catch (e) { /* ignore */ }
+    }, ms));
+}
+
+// Global defensive handler: before any modal shows, try to remove offcanvas backdrops that could cover it
+document.addEventListener('show.bs.modal', (e) => {
+    try {
+        // small immediate cleanup
+        document.querySelectorAll('.offcanvas-backdrop').forEach(b => b.remove());
+        // ensure modal is appended to body so z-index stacking context is predictable
+        const modalEl = e.target;
+        if (modalEl instanceof HTMLElement && modalEl.parentElement !== document.body) {
+            try { document.body.appendChild(modalEl); } catch (err) { /* no-op */ }
+        }
+        // ensure modal has high z-index
+        if (modalEl instanceof HTMLElement) modalEl.style.zIndex = '20050';
+        // tiny defered cleanup in case other scripts add backdrops right after
+        setTimeout(() => scheduleModalBackdropCleanup(modalEl), 20);
+    } catch (err) {
+        console.error('Error in global show.bs.modal handler', err);
+    }
+}, true);
+
 // Mostrar modal producto: mode = 'new'|'edit'
-function showProductoModal(mode = 'new', producto = null) {
+async function showProductoModal(mode = 'new', producto = null) {
     const modalEl = document.getElementById('modalProducto');
     if (!modalEl) return;
-    // Si el sidebar offcanvas está abierto, cerrarlo para evitar backdrops superpuestos
-    const sidebarEl = document.getElementById('sidebar');
-    try { const off = bootstrap.Offcanvas.getInstance(sidebarEl); if (off) off.hide(); } catch (e) { /* no-op */ }
+    // Esperar a que el sidebar (si está abierto) se oculte completamente
+    await ensureSidebarHidden();
     // Eliminar cualquier backdrop residual que pueda quedar (offcanvas o modal)
     document.querySelectorAll('.offcanvas-backdrop, .modal-backdrop').forEach(n => n.remove());
     // Asegurar que el body no tenga clases que impidan interacción
     document.body.classList.remove('modal-open');
-    const modal = new bootstrap.Modal(modalEl);
     // Asegurar que el modal esté en el body para evitar que quede debajo de otros elementos
     try { if (modalEl.parentElement !== document.body) document.body.appendChild(modalEl); } catch (e) { /* no-op */ }
-    // Forzar z-index alto para el modal y ajustar backdrop cuando aparezca
+
+    // Forzar z-index alto para el modal; backdrop se ajustará al mostrarse
     modalEl.style.zIndex = '20050';
+
+    // Crear modal con opciones por defecto y mostrar
+    const modal = new bootstrap.Modal(modalEl, { backdrop: true, keyboard: true });
     modalEl.addEventListener('shown.bs.modal', () => {
         const backdrop = document.querySelector('.modal-backdrop');
-        if (backdrop) backdrop.style.zIndex = '20040';
+        if (backdrop) {
+            backdrop.style.zIndex = '20040';
+            // Evitar que backdrop capture eventos pointer si hay problemas
+            backdrop.style.pointerEvents = 'auto';
+        }
         modalEl.style.zIndex = '20050';
+        // Programar limpieza por si otro componente añade backdrops posteriormente
+        scheduleModalBackdropCleanup(modalEl);
     });
+        // Programar limpieza por si otro componente añade backdrops posteriormente
+        scheduleModalBackdropCleanup(modalEl);
+
     document.getElementById('productoId').value = producto?.id || '';
     document.getElementById('productoNombre').value = producto?.nombre || '';
     document.getElementById('productoSKU').value = producto?.sku || '';
@@ -883,6 +1004,8 @@ function showProductoModal(mode = 'new', producto = null) {
     const btnEliminar = document.getElementById('btnEliminarProducto');
     if (btnEliminar) btnEliminar.style.display = mode === 'edit' ? 'inline-block' : 'none';
     modal.show();
+    // También ejecutar limpieza defensiva inmediatamente tras show en caso de race
+    scheduleModalBackdropCleanup(modalEl);
 }
 
 async function editarProducto(id) {
@@ -947,30 +1070,36 @@ document.getElementById('btnEliminarProducto')?.addEventListener('click', async 
 });
 
 // Mostrar/editar unidades
-function showUnidadModal(mode = 'new', unidad = null) {
+async function showUnidadModal(mode = 'new', unidad = null) {
     const modalEl = document.getElementById('modalUnidad');
     if (!modalEl) return;
     // Si el sidebar offcanvas está abierto, cerrarlo para evitar backdrops superpuestos
     const sidebarEl = document.getElementById('sidebar');
     try { const off = bootstrap.Offcanvas.getInstance(sidebarEl); if (off) off.hide(); } catch (e) { /* no-op */ }
     // Eliminar cualquier backdrop residual que pueda quedar (offcanvas o modal)
-    document.querySelectorAll('.offcanvas-backdrop, .modal-backdrop').forEach(n => n.remove());
-    document.body.classList.remove('modal-open');
-    const modal = new bootstrap.Modal(modalEl);
-    try { if (modalEl.parentElement !== document.body) document.body.appendChild(modalEl); } catch (e) { /* no-op */ }
-    modalEl.style.zIndex = '20050';
-    modalEl.addEventListener('shown.bs.modal', () => {
-        const backdrop = document.querySelector('.modal-backdrop');
-        if (backdrop) backdrop.style.zIndex = '20040';
+        await ensureSidebarHidden();
+        // Eliminar cualquier backdrop residual que pueda quedar (offcanvas o modal)
+        document.querySelectorAll('.offcanvas-backdrop, .modal-backdrop').forEach(n => n.remove());
+        document.body.classList.remove('modal-open');
+        try { if (modalEl.parentElement !== document.body) document.body.appendChild(modalEl); } catch (e) { /* no-op */ }
         modalEl.style.zIndex = '20050';
-    });
-    document.getElementById('unidadId').value = unidad?.id || '';
-    document.getElementById('unidadNombre').value = unidad?.nombre || '';
-    document.getElementById('unidadSimbolo').value = unidad?.simbolo || '';
-    document.getElementById('unidadDescripcion').value = unidad?.descripcion || '';
-    const btnEliminar = document.getElementById('btnEliminarUnidad');
-    if (btnEliminar) btnEliminar.style.display = mode === 'edit' ? 'inline-block' : 'none';
-    modal.show();
+        const modal = new bootstrap.Modal(modalEl, { backdrop: true, keyboard: true });
+        modalEl.addEventListener('shown.bs.modal', () => {
+            const backdrop = document.querySelector('.modal-backdrop');
+            if (backdrop) {
+                backdrop.style.zIndex = '20040';
+                backdrop.style.pointerEvents = 'auto';
+            }
+            modalEl.style.zIndex = '20050';
+        });
+
+        document.getElementById('unidadId').value = unidad?.id || '';
+        document.getElementById('unidadCodigo').value = unidad?.codigo || '';
+        document.getElementById('unidadNombre').value = unidad?.nombre || '';
+        document.getElementById('unidadDescripcion').value = unidad?.descripcion || '';
+        const btnEliminar = document.getElementById('btnEliminarUnidad');
+        if (btnEliminar) btnEliminar.style.display = mode === 'edit' ? 'inline-block' : 'none';
+        modal.show();
 }
 
 async function editarUnidad(id) {
