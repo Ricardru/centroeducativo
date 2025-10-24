@@ -82,6 +82,12 @@ async function inicializarDashboard() {
             throw new Error('No tiene permisos para acceder a este dashboard');
         }
 
+        // Mostrar nombre de usuario en la navbar (campo nombre o name)
+        try {
+            const userLabel = document.getElementById('navbarUserName');
+            if (userLabel) userLabel.textContent = usuario?.nombre ?? usuario?.name ?? session.user.email ?? 'Usuario';
+        } catch (e) { /* ignore */ }
+
         // Configurar eventos de navegación
         configurarNavegacion();
 
@@ -154,6 +160,19 @@ function configurarNavegacion() {
     if (dashboardLink) {
         dashboardLink.classList.add('active');
     }
+
+    // Ocultar secciones de la barra lateral que no contienen enlaces a secciones implementadas
+    try {
+        const availableSections = [
+            'dashboard','calendario','imagenes','avisos','horarios','calificaciones',
+            'asistencias','documentos','productos','unidades','reportes-academicos','estadisticas'
+        ];
+        document.querySelectorAll('.nav-section').forEach(section => {
+            const links = Array.from(section.querySelectorAll('.nav-section-items a[data-section]'));
+            const anyVisible = links.some(a => availableSections.includes(a.dataset.section));
+            if (!anyVisible) section.style.display = 'none';
+        });
+    } catch (e) { /* ignore */ }
 }
 
 // Función para cargar una sección
@@ -400,9 +419,9 @@ async function handleLogout() {
         const { error } = await supabase.auth.signOut();
         if (error) throw error;
         
-        // Usar la ubicación base del sitio
-        const baseUrl = window.location.pathname.split('/admin/')[0];
-        window.location.href = `${baseUrl}/login.html`;
+        // Redirigir al login en la raíz (usar ../login.html para páginas en /admin)
+        // Esto evita problemas con rutas relativas que produzcan 404
+        window.location.href = '../login.html';
     } catch (error) {
         console.error('Error al cerrar sesión:', error);
         mostrarError('Error al cerrar sesión');
