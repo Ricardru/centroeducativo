@@ -35,7 +35,7 @@
     <!-- Header superior -->    
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
         <div class="container-fluid">
-            <button class="btn btn-outline-light me-3" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-controls="sidebar">
+            <button id="btnToggleSidebar" class="btn btn-outline-light me-3" type="button" aria-controls="sidebar">
                 <i class="bi bi-list"></i>
             </button>
             <a class="navbar-brand" href="#">
@@ -137,12 +137,12 @@
     </nav>
 
     <!-- Sidebar lateral -->    
-    <div class="offcanvas offcanvas-start sidebar-offcanvas" tabindex="-1" id="sidebar">
+    <div class="offcanvas offcanvas-start sidebar-offcanvas" tabindex="-1" id="sidebar" data-bs-backdrop="false" data-bs-scroll="false">
         <div class="offcanvas-header bg-primary text-white">
             <h5 class="offcanvas-title">
                 <i class="bi bi-mortarboard me-2"></i>Panel de Control
             </h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+            <!-- close button removed intentionally to follow requirement -->
         </div>
         <div class="offcanvas-body p-0">
             <nav class="sidebar-nav">

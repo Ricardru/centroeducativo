@@ -173,6 +173,61 @@ function configurarNavegacion() {
             if (!anyVisible) section.style.display = 'none';
         });
     } catch (e) { /* ignore */ }
+
+    // ---- Mejoras de UI del sidebar: ocultar links no usados, collapse por seccion y toggle desde boton hamburguesa
+    try {
+        const availableSections = [
+            'dashboard','calendario','imagenes','avisos','horarios','calificaciones',
+            'asistencias','documentos','productos','unidades','reportes-academicos','estadisticas'
+        ];
+
+        // ocultar enlaces individuales que no estén en la lista
+        document.querySelectorAll('.nav-section-items a[data-section]').forEach(a => {
+            if (!availableSections.includes(a.dataset.section)) {
+                a.style.display = 'none';
+            } else {
+                a.style.display = '';
+            }
+        });
+
+        // ocultar secciones completas si ya no tienen enlaces visibles
+        document.querySelectorAll('.nav-section').forEach(section => {
+            const links = Array.from(section.querySelectorAll('.nav-section-items a')).filter(x => x.style.display !== 'none');
+            if (!links.length) section.style.display = 'none';
+            else section.style.display = '';
+        });
+
+        // Hacer las secciones colapsables: click en header alterna visibilidad del ul
+        document.querySelectorAll('.nav-section').forEach(section => {
+            const header = section.querySelector('.nav-section-header');
+            const list = section.querySelector('.nav-section-items');
+            if (!header || !list) return;
+            // añadir cursor pointer y estado collapsed
+            header.style.cursor = 'pointer';
+            header.addEventListener('click', () => {
+                const isHidden = list.style.display === 'none' || getComputedStyle(list).display === 'none';
+                list.style.display = isHidden ? '' : 'none';
+            });
+        });
+
+        // Toggle del sidebar con el boton hamburguesa (sin backdrop)
+        const btnToggle = document.getElementById('btnToggleSidebar');
+        const sidebarEl = document.getElementById('sidebar');
+        if (btnToggle && sidebarEl && typeof bootstrap !== 'undefined') {
+            // create instance with backdrop false
+            const inst = bootstrap.Offcanvas.getOrCreateInstance(sidebarEl, { backdrop: false, scroll: false });
+            btnToggle.addEventListener('click', (e) => {
+                // toggle manual
+                if (sidebarEl.classList.contains('show')) inst.hide();
+                else inst.show();
+            });
+        }
+
+        // Evitar scroll del sidebar (no mostrar scroll-bar)
+        document.querySelectorAll('.sidebar-offcanvas').forEach(s => {
+            s.style.overflow = 'hidden';
+        });
+    } catch (e) { console.error('Error inicializando mejoras sidebar', e); }
 }
 
 // Función para cargar una sección
