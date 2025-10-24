@@ -747,6 +747,16 @@ async function cargarUnidades(container) {
             descripcion: u.descripcion ?? u.description ?? null
         }));
 
+        // Detectar si la tabla tiene columna 'simbolo' o 'codigo' para evitar enviar campos inexistentes
+        try {
+            window.UNIDADES_HAS_SIMBOLO = (unidadesRaw || []).some(u => Object.prototype.hasOwnProperty.call(u, 'simbolo'));
+            window.UNIDADES_HAS_CODIGO = (unidadesRaw || []).some(u => Object.prototype.hasOwnProperty.call(u, 'codigo'));
+            // si ninguna fila existe, dejamos ambos flags a false — el submit será conservador
+        } catch (e) {
+            window.UNIDADES_HAS_SIMBOLO = false;
+            window.UNIDADES_HAS_CODIGO = false;
+        }
+
         const tabla = new DataTable('#tablaUnidades', {
             data: unidades.map(u => ({
                 nombre: u.nombre,
@@ -1206,11 +1216,18 @@ async function ensureUnidadModalExists() {
             form.addEventListener('submit', async (e) => {
                                 e.preventDefault();
                                 const id = document.getElementById('unidadId').value;
-                    const payload = {
-                            nombre: document.getElementById('unidadNombre').value.trim(),
-                            simbolo: (document.getElementById('unidadCodigo')?.value || document.getElementById('unidadSimbolo')?.value || '').trim() || null,
-                            descripcion: document.getElementById('unidadDescripcion').value.trim() || null
-                        };
+                                const nombreVal = document.getElementById('unidadNombre').value.trim();
+                                const descripcionVal = document.getElementById('unidadDescripcion').value.trim() || null;
+                                const simboloVal = (document.getElementById('unidadCodigo')?.value || document.getElementById('unidadSimbolo')?.value || '').trim() || null;
+                                // Construir payload de forma defensiva: sólo incluir la clave que exista en la tabla
+                                const payload = { nombre: nombreVal, descripcion: descripcionVal };
+                                if (simboloVal) {
+                                    if (window.UNIDADES_HAS_SIMBOLO) payload.simbolo = simboloVal;
+                                    else if (window.UNIDADES_HAS_CODIGO) payload.codigo = simboloVal;
+                                    else {
+                                        // La tabla no parece tener 'simbolo' ni 'codigo'; evitar enviar ese campo
+                                    }
+                                }
                                 try {
                                         if (!payload.nombre) return mostrarError('El nombre de la unidad es requerido');
                                         if (id) {
@@ -1271,12 +1288,15 @@ async function editarUnidad(id) {
 document.getElementById('formUnidad')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const id = document.getElementById('unidadId').value;
-    const payload = {
-        nombre: document.getElementById('unidadNombre').value.trim(),
-        // aceptar tanto unidadSimbolo (plantilla) como unidadCodigo (nueva)
-        simbolo: (document.getElementById('unidadSimbolo')?.value || document.getElementById('unidadCodigo')?.value || '').trim() || null,
-        descripcion: document.getElementById('unidadDescripcion').value.trim() || null
-    };
+    const nombreVal = document.getElementById('unidadNombre').value.trim();
+    const descripcionVal = document.getElementById('unidadDescripcion').value.trim() || null;
+    const simboloVal = (document.getElementById('unidadSimbolo')?.value || document.getElementById('unidadCodigo')?.value || '').trim() || null;
+    const payload = { nombre: nombreVal, descripcion: descripcionVal };
+    if (simboloVal) {
+        if (window.UNIDADES_HAS_SIMBOLO) payload.simbolo = simboloVal;
+        else if (window.UNIDADES_HAS_CODIGO) payload.codigo = simboloVal;
+        // si ninguna de las dos columnas existe, no añadimos la clave al payload
+    }
     try {
         if (!payload.nombre) return mostrarError('El nombre de la unidad es requerido');
         if (id) {
