@@ -1100,21 +1100,117 @@ document.getElementById('btnEliminarProducto')?.addEventListener('click', async 
 // Mostrar/editar unidades
 async function showUnidadModal(mode = 'new', unidad = null) {
     const modalEl = document.getElementById('modalUnidad');
-    if (!modalEl) return;
+    // Si el modal no está en el DOM, inyectarlo dinámicamente (algunas plantillas no incluyen el modal)
+    if (!modalEl) await ensureUnidadModalExists();
+
+    const modalElNow = document.getElementById('modalUnidad');
+    if (!modalElNow) return;
 
     // Esperar que el sidebar/offcanvas esté completamente oculto para evitar backdrops en conflicto
     try { await ensureSidebarHidden(); } catch (e) { /* ignore */ }
 
-    let modal = bootstrap.Modal.getInstance(modalEl);
-    if (!modal) modal = new bootstrap.Modal(modalEl);
+    let modal = bootstrap.Modal.getInstance(modalElNow);
+    if (!modal) modal = new bootstrap.Modal(modalElNow);
 
-    document.getElementById('unidadId').value = unidad?.id || '';
-    document.getElementById('unidadCodigo').value = unidad?.codigo || '';
-    document.getElementById('unidadNombre').value = unidad?.nombre || '';
-    document.getElementById('unidadDescripcion').value = unidad?.descripcion || '';
-    const btnEliminar = document.getElementById('btnEliminarUnidad');
+        document.getElementById('unidadId').value = unidad?.id || '';
+        document.getElementById('unidadCodigo').value = unidad?.codigo || '';
+        document.getElementById('unidadNombre').value = unidad?.nombre || '';
+        document.getElementById('unidadDescripcion').value = unidad?.descripcion || '';
+        const btnEliminar = document.getElementById('btnEliminarUnidad');
     if (btnEliminar) btnEliminar.style.display = mode === 'edit' ? 'inline-block' : 'none';
     modal.show();
+}
+
+// Si el modal de unidad no existe en el DOM, crear la estructura y enlazar handlers mínimos
+async function ensureUnidadModalExists() {
+        if (document.getElementById('modalUnidad')) return;
+        const tpl = `
+        <div class="modal fade" id="modalUnidad" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form id="formUnidad">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Unidad de Medida</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <input type="hidden" id="unidadId">
+                            <div class="mb-3">
+                                <label for="unidadCodigo" class="form-label">Código</label>
+                                <input id="unidadCodigo" class="form-control" />
+                            </div>
+                            <div class="mb-3">
+                                <label for="unidadNombre" class="form-label">Nombre</label>
+                                <input id="unidadNombre" class="form-control" required />
+                            </div>
+                            <div class="mb-3">
+                                <label for="unidadDescripcion" class="form-label">Descripción</label>
+                                <textarea id="unidadDescripcion" class="form-control" rows="3"></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" id="btnEliminarUnidad" class="btn btn-danger">Eliminar</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                            <button type="submit" class="btn btn-primary">Guardar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>`;
+        try {
+                const wrapper = document.createElement('div');
+                wrapper.innerHTML = tpl.trim();
+                document.body.appendChild(wrapper.firstElementChild);
+
+                // Enlazar handlers si no están ya enlazados (guardas por dataset)
+                const form = document.getElementById('formUnidad');
+                if (form && !form.dataset._attached) {
+                        form.addEventListener('submit', async (e) => {
+                                e.preventDefault();
+                                const id = document.getElementById('unidadId').value;
+                                const payload = {
+                                        nombre: document.getElementById('unidadNombre').value.trim(),
+                                        simbolo: document.getElementById('unidadCodigo').value.trim() || null,
+                                        descripcion: document.getElementById('unidadDescripcion').value.trim() || null
+                                };
+                                try {
+                                        if (!payload.nombre) return mostrarError('El nombre de la unidad es requerido');
+                                        if (id) {
+                                                const { error } = await supabase.from('unidades_medida').update(payload).eq('id', id);
+                                                if (error) throw error;
+                                                mostrarExito('Unidad actualizada');
+                                        } else {
+                                                const { error } = await supabase.from('unidades_medida').insert([payload]);
+                                                if (error) throw error;
+                                                mostrarExito('Unidad creada');
+                                        }
+                                        bootstrap.Modal.getInstance(document.getElementById('modalUnidad'))?.hide();
+                                        await cargarUnidades(lastMainContainer);
+                                } catch (err) {
+                                        console.error(err);
+                                        mostrarError('Error al guardar unidad');
+                                }
+                        });
+                        form.dataset._attached = '1';
+                }
+
+                const btnEliminar = document.getElementById('btnEliminarUnidad');
+                if (btnEliminar && !btnEliminar.dataset._attached) {
+                        btnEliminar.addEventListener('click', async () => {
+                                const id = document.getElementById('unidadId').value;
+                                if (!id) return;
+                                if (!confirm('¿Eliminar esta unidad de medida?')) return;
+                                const { error } = await supabase.from('unidades_medida').delete().eq('id', id);
+                                if (error) return mostrarError('Error al eliminar unidad');
+                                mostrarExito('Unidad eliminada');
+                                bootstrap.Modal.getInstance(document.getElementById('modalUnidad'))?.hide();
+                                await cargarUnidades(lastMainContainer);
+                        });
+                        btnEliminar.dataset._attached = '1';
+                }
+        } catch (e) {
+                console.error('Error creando modal de unidad dinámicamente', e);
+        }
 }
 
 async function editarUnidad(id) {
