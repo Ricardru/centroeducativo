@@ -1,6 +1,18 @@
 // Módulo para la interfaz de usuario del calendario
 console.log('[Calendario UI] Iniciando módulo...');
 
+// Registrar menú del módulo académico (se mostrará en el sidebar)
+try {
+    if (window && typeof window.registerModuleMenu === 'function') {
+        window.registerModuleMenu('academico', [
+            { section: 'calendario', label: 'Calendario Escolar', icon: 'bi bi-calendar' },
+            { section: 'horarios', label: 'Horarios de Clase', icon: 'bi bi-clock' },
+            { section: 'calificaciones', label: 'Calificaciones', icon: 'bi bi-journal-check' },
+            { section: 'asistencias', label: 'Control de Asistencia', icon: 'bi bi-person-check' }
+        ]);
+    }
+} catch (e) { console.error('Error registrando menú academico', e); }
+
 import { obtenerEventos, crearEvento, actualizarEvento, eliminarEvento, validarEvento } from './calendario-escolar.js';
 import { supabase, mostrarError, mostrarExito } from '../auth.js';
 

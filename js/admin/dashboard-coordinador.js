@@ -62,6 +62,38 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('btnLogout')?.addEventListener('click', handleLogout);
 });
 
+// Global registry for module menus. Modules can call registerModuleMenu(moduleKey, items[])
+window.MODULE_MENUS = window.MODULE_MENUS || {};
+window.registerModuleMenu = function(moduleKey, items) {
+    try {
+        if (!moduleKey) return;
+        window.MODULE_MENUS[moduleKey] = items || [];
+        // if dashboard already initialized, re-render menus
+        try { renderModuleMenus(); } catch (e) { /* ignore */ }
+    } catch (e) { console.error('registerModuleMenu error', e); }
+};
+
+function renderModuleMenus() {
+    // For each nav-section that has data-module, populate its .nav-section-items from registry
+    document.querySelectorAll('.nav-section[data-module]').forEach(section => {
+        const moduleKey = section.dataset.module;
+        const list = section.querySelector('.nav-section-items');
+        if (!list) return;
+        const items = (window.MODULE_MENUS && window.MODULE_MENUS[moduleKey]) || null;
+        if (items && items.length) {
+            // build items
+            list.innerHTML = items.map(it => `
+                <li><a href="#" data-section="${it.section}"><i class="${it.icon || ''} me-2"></i>${it.label}</a></li>
+            `).join('\n');
+        } else {
+            // if no items registered and list already has li children, keep them; else hide section
+            const hasStatic = list.querySelectorAll('li').length > 0;
+            if (!hasStatic) section.style.display = 'none';
+            else section.style.display = '';
+        }
+    });
+}
+
 // Función para inicializar el dashboard
 async function inicializarDashboard() {
     try {
