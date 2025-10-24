@@ -1099,12 +1099,20 @@ document.getElementById('btnEliminarProducto')?.addEventListener('click', async 
 
 // Mostrar/editar unidades
 async function showUnidadModal(mode = 'new', unidad = null) {
+    console.debug('[debug-unidad] showUnidadModal start', { mode, unidad });
     const modalEl = document.getElementById('modalUnidad');
     // Si el modal no está en el DOM, inyectarlo dinámicamente (algunas plantillas no incluyen el modal)
-    if (!modalEl) await ensureUnidadModalExists();
+    if (!modalEl) {
+        console.debug('[debug-unidad] modalUnidad no presente, llamando ensureUnidadModalExists()');
+        await ensureUnidadModalExists();
+    }
 
     const modalElNow = document.getElementById('modalUnidad');
-    if (!modalElNow) return;
+    console.debug('[debug-unidad] modalElNow:', !!modalElNow, modalElNow);
+    if (!modalElNow) {
+        console.error('[debug-unidad] modalUnidad sigue sin existir después de ensureUnidadModalExists()');
+        return;
+    }
 
     // Esperar que el sidebar/offcanvas esté completamente oculto para evitar backdrops en conflicto
     try { await ensureSidebarHidden(); } catch (e) { /* ignore */ }
@@ -1112,18 +1120,46 @@ async function showUnidadModal(mode = 'new', unidad = null) {
     let modal = bootstrap.Modal.getInstance(modalElNow);
     if (!modal) modal = new bootstrap.Modal(modalElNow);
 
-        document.getElementById('unidadId').value = unidad?.id || '';
-        document.getElementById('unidadCodigo').value = unidad?.codigo || '';
-        document.getElementById('unidadNombre').value = unidad?.nombre || '';
-        document.getElementById('unidadDescripcion').value = unidad?.descripcion || '';
+    // Antes de escribir en inputs, verificar que existen
+    const idsToCheck = ['unidadId', 'unidadCodigo', 'unidadNombre', 'unidadDescripcion', 'btnEliminarUnidad'];
+    const missing = idsToCheck.filter(id => !document.getElementById(id));
+    if (missing.length) {
+        console.error('[debug-unidad] faltan elementos en el DOM antes de rellenar formulario:', missing);
+        console.debug('[debug-unidad] modalElNow innerHTML length:', modalElNow.innerHTML?.length);
+    }
+
+    try {
+        const elId = document.getElementById('unidadId');
+        const elCodigo = document.getElementById('unidadCodigo');
+        const elNombre = document.getElementById('unidadNombre');
+        const elDescripcion = document.getElementById('unidadDescripcion');
+
+        if (!elId || !elCodigo || !elNombre || !elDescripcion) {
+            console.error('[debug-unidad] abortando rellenado: elementos faltantes', { elId: !!elId, elCodigo: !!elCodigo, elNombre: !!elNombre, elDescripcion: !!elDescripcion });
+        } else {
+            elId.value = unidad?.id || '';
+            elCodigo.value = unidad?.codigo || '';
+            elNombre.value = unidad?.nombre || '';
+            elDescripcion.value = unidad?.descripcion || '';
+        }
+
         const btnEliminar = document.getElementById('btnEliminarUnidad');
-    if (btnEliminar) btnEliminar.style.display = mode === 'edit' ? 'inline-block' : 'none';
+        if (btnEliminar) btnEliminar.style.display = mode === 'edit' ? 'inline-block' : 'none';
+    } catch (e) {
+        console.error('[debug-unidad] error rellenando campos del modal:', e);
+    }
+
     modal.show();
+    console.debug('[debug-unidad] modal.show() llamado');
 }
 
 // Si el modal de unidad no existe en el DOM, crear la estructura y enlazar handlers mínimos
 async function ensureUnidadModalExists() {
-        if (document.getElementById('modalUnidad')) return;
+    console.debug('[debug-unidad] ensureUnidadModalExists start');
+    if (document.getElementById('modalUnidad')) {
+        console.debug('[debug-unidad] modalUnidad ya existe, saliendo');
+        return;
+    }
         const tpl = `
         <div class="modal fade" id="modalUnidad" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog">
@@ -1164,8 +1200,9 @@ async function ensureUnidadModalExists() {
 
                 // Enlazar handlers si no están ya enlazados (guardas por dataset)
                 const form = document.getElementById('formUnidad');
+                console.debug('[debug-unidad] modal inyectado, form encontrado:', !!form);
                 if (form && !form.dataset._attached) {
-                        form.addEventListener('submit', async (e) => {
+            form.addEventListener('submit', async (e) => {
                                 e.preventDefault();
                                 const id = document.getElementById('unidadId').value;
                                 const payload = {
@@ -1191,10 +1228,12 @@ async function ensureUnidadModalExists() {
                                         mostrarError('Error al guardar unidad');
                                 }
                         });
-                        form.dataset._attached = '1';
+            form.dataset._attached = '1';
+            console.debug('[debug-unidad] submit handler adjuntado');
                 }
 
                 const btnEliminar = document.getElementById('btnEliminarUnidad');
+                console.debug('[debug-unidad] btnEliminar encontrado:', !!btnEliminar);
                 if (btnEliminar && !btnEliminar.dataset._attached) {
                         btnEliminar.addEventListener('click', async () => {
                                 const id = document.getElementById('unidadId').value;
@@ -1206,7 +1245,8 @@ async function ensureUnidadModalExists() {
                                 bootstrap.Modal.getInstance(document.getElementById('modalUnidad'))?.hide();
                                 await cargarUnidades(lastMainContainer);
                         });
-                        btnEliminar.dataset._attached = '1';
+            btnEliminar.dataset._attached = '1';
+            console.debug('[debug-unidad] delete handler adjuntado');
                 }
         } catch (e) {
                 console.error('Error creando modal de unidad dinámicamente', e);
@@ -1214,8 +1254,15 @@ async function ensureUnidadModalExists() {
 }
 
 async function editarUnidad(id) {
+    console.debug('[debug-unidad] editarUnidad id=', id);
     const { data, error } = await supabase.from('unidades_medida').select('*').eq('id', id).single();
-    if (error) return mostrarError('Error al obtener unidad');
+    console.debug('[debug-unidad] supabase response editarUnidad', { data, error });
+    if (error) {
+        console.error('[debug-unidad] error al obtener unidad desde supabase', error);
+        return mostrarError('Error al obtener unidad');
+    }
+    // Log data shape
+    try { console.debug('[debug-unidad] unidad data keys:', Object.keys(data || {})); } catch(e){}
     showUnidadModal('edit', data);
 }
 
