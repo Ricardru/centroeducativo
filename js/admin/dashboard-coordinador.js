@@ -1130,7 +1130,8 @@ async function showUnidadModal(mode = 'new', unidad = null) {
 
     try {
         const elId = document.getElementById('unidadId');
-        const elCodigo = document.getElementById('unidadCodigo');
+    // aceptar tanto 'unidadCodigo' (nuevo) como 'unidadSimbolo' (plantilla existente)
+    const elCodigo = document.getElementById('unidadCodigo') || document.getElementById('unidadSimbolo');
         const elNombre = document.getElementById('unidadNombre');
         const elDescripcion = document.getElementById('unidadDescripcion');
 
@@ -1138,7 +1139,7 @@ async function showUnidadModal(mode = 'new', unidad = null) {
             console.error('[debug-unidad] abortando rellenado: elementos faltantes', { elId: !!elId, elCodigo: !!elCodigo, elNombre: !!elNombre, elDescripcion: !!elDescripcion });
         } else {
             elId.value = unidad?.id || '';
-            elCodigo.value = unidad?.codigo || '';
+            if (elCodigo) elCodigo.value = unidad?.codigo ?? unidad?.simbolo ?? '';
             elNombre.value = unidad?.nombre || '';
             elDescripcion.value = unidad?.descripcion || '';
         }
@@ -1205,11 +1206,11 @@ async function ensureUnidadModalExists() {
             form.addEventListener('submit', async (e) => {
                                 e.preventDefault();
                                 const id = document.getElementById('unidadId').value;
-                                const payload = {
-                                        nombre: document.getElementById('unidadNombre').value.trim(),
-                                        simbolo: document.getElementById('unidadCodigo').value.trim() || null,
-                                        descripcion: document.getElementById('unidadDescripcion').value.trim() || null
-                                };
+                    const payload = {
+                            nombre: document.getElementById('unidadNombre').value.trim(),
+                            simbolo: (document.getElementById('unidadCodigo')?.value || document.getElementById('unidadSimbolo')?.value || '').trim() || null,
+                            descripcion: document.getElementById('unidadDescripcion').value.trim() || null
+                        };
                                 try {
                                         if (!payload.nombre) return mostrarError('El nombre de la unidad es requerido');
                                         if (id) {
@@ -1272,7 +1273,8 @@ document.getElementById('formUnidad')?.addEventListener('submit', async (e) => {
     const id = document.getElementById('unidadId').value;
     const payload = {
         nombre: document.getElementById('unidadNombre').value.trim(),
-        simbolo: document.getElementById('unidadSimbolo').value.trim() || null,
+        // aceptar tanto unidadSimbolo (plantilla) como unidadCodigo (nueva)
+        simbolo: (document.getElementById('unidadSimbolo')?.value || document.getElementById('unidadCodigo')?.value || '').trim() || null,
         descripcion: document.getElementById('unidadDescripcion').value.trim() || null
     };
     try {
