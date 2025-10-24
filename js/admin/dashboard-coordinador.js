@@ -6,7 +6,7 @@ import { inicializarModuloImagenes } from './imagenes.js';
 import { cargarCalificaciones } from './modules/calificaciones.js';
 import { mostrarError, mostrarExito, formatearEstadoAsistencia, formatearFecha } from './utils.js';
 
-const VERSION = '1.0.33';
+const VERSION = '1.0.34';
 
 // Importar librerías externas
 const importarLibrerias = async () => {
