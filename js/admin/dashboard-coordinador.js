@@ -58,8 +58,6 @@ let lastMainContainer = null;
 // Inicialización cuando el DOM está listo
 document.addEventListener('DOMContentLoaded', async () => {
     await importarLibrerias();
-    // Activar automáticamente el observador de backdrops/modal para diagnóstico temporal
-    try { window.enableModalDebug?.(); } catch (e) { /* noop */ }
     inicializarDashboard();
     document.getElementById('btnLogout')?.addEventListener('click', handleLogout);
 });
