@@ -229,16 +229,17 @@ function configurarNavegacion() {
             else section.style.display = '';
         });
 
-        // Hacer las secciones colapsables: click en header alterna visibilidad del ul
+        // Hacer las secciones colapsables: click en header alterna la clase 'collapsed' en el ul
         document.querySelectorAll('.nav-section').forEach(section => {
             const header = section.querySelector('.nav-section-header');
             const list = section.querySelector('.nav-section-items');
             if (!header || !list) return;
-            // añadir cursor pointer y estado collapsed
+            // añadir cursor pointer
             header.style.cursor = 'pointer';
+            // iniciar colapsado para elegancia
+            list.classList.add('collapsed');
             header.addEventListener('click', () => {
-                const isHidden = list.style.display === 'none' || getComputedStyle(list).display === 'none';
-                list.style.display = isHidden ? '' : 'none';
+                list.classList.toggle('collapsed');
             });
         });
 
@@ -248,10 +249,23 @@ function configurarNavegacion() {
         if (btnToggle && sidebarEl && typeof bootstrap !== 'undefined') {
             // create instance with backdrop false
             const inst = bootstrap.Offcanvas.getOrCreateInstance(sidebarEl, { backdrop: false, scroll: false });
+            // restore preference from localStorage
+            try {
+                const pref = localStorage.getItem('sidebar-collapsed');
+                if (pref === '1' && window.innerWidth >= 992) document.body.classList.add('sidebar-collapsed');
+            } catch (e) { /* ignore */ }
+
             btnToggle.addEventListener('click', (e) => {
-                // toggle manual
-                if (sidebarEl.classList.contains('show')) inst.hide();
-                else inst.show();
+                // on small screens keep offcanvas behavior
+                if (window.innerWidth < 992) {
+                    if (sidebarEl.classList.contains('show')) inst.hide();
+                    else inst.show();
+                    return;
+                }
+
+                // desktop: toggle a class on body to hide/show sidebar persistently
+                const collapsedNow = document.body.classList.toggle('sidebar-collapsed');
+                try { localStorage.setItem('sidebar-collapsed', collapsedNow ? '1' : '0'); } catch (e) { /* ignore */ }
             });
         }
 

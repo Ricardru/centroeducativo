@@ -28,6 +28,19 @@
         @media (max-width: 576px) {
             .sidebar-offcanvas { top: 64px !important; height: calc(100% - 64px) !important; }
         }
+
+        /* Collapsed nav-section items (hidden by default for a cleaner look) */
+        .nav-section-items.collapsed { display: none; }
+
+        /* Sidebar hidden state for desktop: translate away and hide visibility */
+        @media (min-width: 992px) {
+            body.sidebar-collapsed .sidebar-offcanvas {
+                transform: translateX(-100%) !important;
+                visibility: hidden !important;
+            }
+            /* allow main content to use full width when sidebar collapsed */
+            body.sidebar-collapsed .main-content { margin-left: 0 !important; }
+        }
     </style>
 </head>
 <body>
